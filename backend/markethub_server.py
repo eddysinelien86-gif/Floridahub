@@ -6,6 +6,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
+from ai import generate as ai_generate
 from database import fetch_dashboard_payload, init_db
 
 HOST = "0.0.0.0"
@@ -43,28 +44,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers.get("Content-Length", "0"))
         raw_body = self.rfile.read(content_length).decode("utf-8")
         data = json.loads(raw_body or "{}")
-        prompt = str(data.get("prompt", "")).strip().lower()
+        prompt = str(data.get("prompt", "")).strip()
 
-        if "caption" in prompt:
-            response = {
-                "text": "Capture the energy of the launch with a warm, confident caption that highlights transformation and momentum.",
-                "mode": "caption",
-            }
-        elif "hashtag" in prompt:
-            response = {
-                "text": "#GrowthMindset #ModernBusiness #DigitalMarketing #BrandMomentum #AudienceFirst",
-                "mode": "hashtag",
-            }
-        elif "review" in prompt:
-            response = {
-                "text": "Thank you for your feedback. We appreciate the trust you placed in us and look forward to helping your business grow.",
-                "mode": "review",
-            }
-        else:
-            response = {
-                "text": f"A polished marketing idea for '{prompt or 'your business'}' could be a short video series featuring customer wins and behind-the-scenes momentum.",
-                "mode": "idea",
-            }
+        # Real generation via Claude (falls back to sample text without a key).
+        response = ai_generate(prompt)
 
         self._send_json(response)
 

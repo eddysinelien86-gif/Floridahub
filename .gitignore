@@ -1,0 +1,6 @@
+# Python
+__pycache__/
+*.pyc
+
+# MarketHub runtime data (regenerated on first run)
+backend/markethub.db
