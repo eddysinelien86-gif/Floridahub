@@ -22,6 +22,20 @@
 #define LCD_RST   39
 #define LCD_BL     5
 
+// RGB565 colors (defined here so this works on any GFX library version)
+#ifndef BLACK
+#define BLACK 0x0000
+#endif
+#ifndef WHITE
+#define WHITE 0xFFFF
+#endif
+#ifndef CYAN
+#define CYAN  0x07FF
+#endif
+#ifndef GREEN
+#define GREEN 0x07E0
+#endif
+
 Arduino_DataBus *bus = new Arduino_ESP32SPI(LCD_DC, LCD_CS, LCD_SCK, LCD_MOSI, -1 /* MISO unused */);
 Arduino_GFX *gfx = new Arduino_ST7789(bus, LCD_RST, 0 /* rotation */, true /* IPS */, 240, 320);
 
