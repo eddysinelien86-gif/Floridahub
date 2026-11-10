@@ -14,8 +14,8 @@
         --text: #e5f2ff;
         --muted: #8da5c8;
         --good: #34d399;
+        --warn: #fbbf24;
       }
-
       * { box-sizing: border-box; }
       body {
         margin: 0;
@@ -24,138 +24,89 @@
         color: var(--text);
         min-height: 100vh;
       }
-
-      .shell {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-
-      .topbar, .card, .hero {
+      .shell { max-width: 1400px; margin: 0 auto; padding: 20px; }
+      .topbar, .card, .hero, .panel {
         background: rgba(13, 23, 40, 0.92);
         border: 1px solid rgba(96, 165, 250, 0.2);
         box-shadow: 0 20px 45px rgba(2, 6, 23, 0.35);
       }
-
       .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 20px;
-        border-radius: 24px;
-        margin-bottom: 18px;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .logo {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, var(--accent), #8b5cf6);
-        display: grid;
-        place-items: center;
-        font-weight: 800;
-      }
-
-      .title h1 { margin: 0; font-size: 1.1rem; }
-      .title p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
-
-      .status-group {
-        display: flex;
-        gap: 10px;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 20px; border-radius: 24px; margin-bottom: 18px; gap: 12px;
         flex-wrap: wrap;
-        color: var(--muted);
-        font-size: 0.92rem;
       }
-
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .logo {
+        width: 42px; height: 42px; border-radius: 14px;
+        background: linear-gradient(135deg, var(--accent), #8b5cf6);
+        display: grid; place-items: center; font-weight: 800;
+      }
+      .title h1 { margin: 0; font-size: 20px; }
+      .title p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+      .status-group { display: flex; gap: 8px; flex-wrap: wrap; }
       .pill {
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: rgba(59, 130, 246, 0.14);
-        color: var(--text);
+        padding: 7px 12px; border-radius: 999px; font-size: 13px;
+        background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25);
       }
+      .pill .dot { color: var(--good); }
+      .pill.off .dot { color: #f87171; }
 
       .hero {
-        border-radius: 28px;
-        padding: 24px;
-        display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 24px;
-        margin-bottom: 20px;
+        display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px;
+        padding: 20px; border-radius: 24px; margin-bottom: 18px;
       }
+      .hero h2 { margin: 0 0 8px; font-size: 22px; }
+      .hero p { color: var(--muted); margin: 0 0 16px; }
 
-      .hero h2 { margin: 0 0 8px; font-size: 1.4rem; }
-      .hero p { color: var(--muted); margin: 0 0 16px; line-height: 1.6; }
-
-      .hero .actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
+      /* AI assistant */
+      .ai textarea {
+        width: 100%; min-height: 70px; resize: vertical; border-radius: 14px;
+        background: #0a1526; color: var(--text); border: 1px solid rgba(96,165,250,0.3);
+        padding: 12px; font-size: 15px; font-family: inherit;
       }
-
+      .ai-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
       button {
-        border: none;
-        border-radius: 999px;
-        padding: 10px 14px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: transform 180ms ease, box-shadow 180ms ease;
+        cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px;
+        font-size: 14px; font-weight: 600; color: var(--text);
+        background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
       }
-
-      button:hover { transform: translateY(-2px); }
-      .primary { background: linear-gradient(135deg, var(--accent), #4f46e5); color: white; }
-      .secondary { background: rgba(96, 165, 250, 0.14); color: var(--text); }
-
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+      button.primary { background: linear-gradient(135deg, var(--accent), #8b5cf6); border: none; }
+      button:active { transform: translateY(1px); }
+      .ai-output {
+        margin-top: 12px; padding: 14px; border-radius: 14px; min-height: 56px;
+        background: #0a1526; border: 1px solid rgba(52,211,153,0.3); white-space: pre-wrap;
+        font-size: 15px; line-height: 1.5;
       }
+      .ai-output .src { color: var(--muted); font-size: 12px; display: block; margin-top: 8px; }
 
+      .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .card {
-        border-radius: 22px;
-        padding: 16px;
-        transition: transform 220ms ease, border-color 220ms ease;
+        border-radius: 18px; padding: 14px;
       }
+      .card h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+      .card .value { font-size: 22px; font-weight: 800; }
+      .card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+      .change.up { color: var(--good); } .change.down { color: #f87171; }
 
-      .card:hover { transform: translateY(-3px); border-color: rgba(96, 165, 250, 0.4); }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 16px;
+      .section-title { margin: 22px 4px 10px; font-size: 15px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+      .list .row {
+        display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px;
+        border-bottom: 1px solid rgba(96,165,250,0.12);
       }
-
-      .card h3 { margin: 0 0 8px; font-size: 1rem; }
-      .card .value { font-size: 1.35rem; font-weight: 800; margin-bottom: 6px; }
-      .card .meta { color: var(--muted); font-size: 0.9rem; }
-      .card .badge { display: inline-block; padding: 6px 8px; border-radius: 999px; background: rgba(52, 211, 153, 0.14); color: var(--good); margin-top: 8px; }
-
-      .list { display: flex; flex-direction: column; gap: 10px; }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-      }
-
-      .row:last-child { border-bottom: none; }
+      .list .row:last-child { border-bottom: none; }
+      .list .row .sub { color: var(--muted); font-size: 13px; }
+      .tag { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(96,165,250,0.15); }
+      .stars { color: var(--warn); }
 
       @media (max-width: 1100px) {
         .hero { grid-template-columns: 1fr; }
-        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid { grid-template-columns: repeat(2, 1fr); }
       }
-
       @media (max-width: 700px) {
         .shell { padding: 12px; }
-        .topbar { flex-direction: column; align-items: flex-start; gap: 10px; }
         .grid { grid-template-columns: 1fr; }
+        .stats { grid-template-columns: 1fr 1fr; }
       }
     </style>
   </head>
@@ -166,81 +117,132 @@
           <div class="logo">MH</div>
           <div class="title">
             <h1 id="companyName">MarketHub</h1>
-            <p id="companyTagline">Modern growth dashboard for your business</p>
+            <p id="companyTagline">Loading…</p>
           </div>
         </div>
         <div class="status-group">
           <div class="pill" id="datetime">--</div>
-          <div class="pill">Wi‑Fi ●</div>
-          <div class="pill">🔔 3</div>
-          <div class="pill">🔋 86%</div>
+          <div class="pill" id="connPill"><span class="dot">●</span> <span id="connText">Connecting…</span></div>
         </div>
       </div>
 
       <section class="hero">
-        <div>
-          <h2>Touch-first growth intelligence for modern brands</h2>
-          <p>Keep reviews, social momentum, leads, and marketing ideas in one polished command center inspired by premium professional social presence.</p>
-          <div class="actions">
-            <button class="primary">Open AI Assistant</button>
-            <button class="secondary">View Analytics</button>
+        <div class="ai">
+          <h2>🤖 AI Assistant</h2>
+          <p>Type what you want, pick a type, and let Claude write it for you to post.</p>
+          <textarea id="aiPrompt" placeholder="e.g. a weekend special, 20% off screen repairs"></textarea>
+          <div class="ai-buttons">
+            <button class="primary" onclick="generate('caption')">Caption</button>
+            <button onclick="generate('hashtags')">Hashtags</button>
+            <button onclick="generate('review reply')">Review reply</button>
+            <button onclick="generate('idea')">Idea</button>
           </div>
+          <div class="ai-output" id="aiOutput">Your generated content will appear here.</div>
         </div>
-        <div class="stats">
-          <div class="card">
-            <h3>Engagement</h3>
-            <div class="value">+24%</div>
-            <div class="meta">Across Instagram and TikTok</div>
-          </div>
-          <div class="card">
-            <h3>Trust</h3>
-            <div class="value">4.9/5</div>
-            <div class="meta">Average review score</div>
-          </div>
-          <div class="card">
-            <h3>Leads</h3>
-            <div class="value">321</div>
-            <div class="meta">Qualified this month</div>
-          </div>
-          <div class="card">
-            <h3>Sales</h3>
-            <div class="value">$18.2K</div>
-            <div class="meta">Growth momentum</div>
-          </div>
-        </div>
+        <div class="stats" id="heroStats"></div>
       </section>
 
-      <section class="grid" id="cards"></section>
+      <div class="section-title">Social</div>
+      <section class="grid" id="social"></section>
+
+      <div class="section-title">Analytics</div>
+      <section class="grid" id="analytics"></section>
+
+      <div class="section-title">Recent reviews</div>
+      <section class="panel list" id="reviews" style="border-radius:18px;"></section>
+
+      <div class="section-title">Customers</div>
+      <section class="panel list" id="customers" style="border-radius:18px;"></section>
     </div>
 
     <script>
-      const cards = [
-        { title: 'Social Media', value: 'Facebook • Instagram • TikTok', meta: 'Cross-channel content pulse' },
-        { title: 'Reviews', value: '4.9 average rating', meta: 'New review alerts' },
-        { title: 'AI Assistant', value: 'Post, caption, hashtag', meta: 'Fast content generation' },
-        { title: 'Customers', value: 'Leads • Quotes • Appointments', meta: 'CRM-ready contact panel' },
-        { title: 'Analytics', value: 'Visitors • Engagement • Sales', meta: 'Live growth visuals' },
-        { title: 'QR Center', value: 'Website • Contact • Review', meta: 'Instant access tools' },
-        { title: 'Marketing', value: 'Schedule • Campaign • Planner', meta: 'Campaign orchestration' },
-        { title: 'Settings', value: 'Profile • Branding • Wi-Fi', meta: 'Connected and secure' }
-      ];
+      // If you open this page on the Pi itself you can use "http://localhost:8000".
+      // From a phone/laptop on the same Wi-Fi, use the Pi's IP:
+      const API_BASE = "http://192.168.1.207:8000";
 
-      const container = document.getElementById('cards');
-      container.innerHTML = cards.map(card => `
-        <div class="card">
-          <h3>${card.title}</h3>
-          <div class="value">${card.value}</div>
-          <div class="meta">${card.meta}</div>
-          <span class="badge">Live</span>
-        </div>
-      `).join('');
+      const $ = (id) => document.getElementById(id);
 
-      const updateTime = () => {
-        const now = new Date();
-        document.getElementById('datetime').textContent = now.toLocaleString();
-      };
+      function setConn(ok) {
+        const pill = $("connPill");
+        $("connText").textContent = ok ? "Pi connected" : "Pi offline";
+        pill.classList.toggle("off", !ok);
+      }
+
+      function card(label, value, change) {
+        const dir = (change || "").trim().startsWith("-") ? "down" : "up";
+        return `<div class="card">
+          <h3>${label}</h3>
+          <div class="value">${value || "--"}</div>
+          <div class="meta change ${dir}">${change || ""}</div>
+        </div>`;
+      }
+
+      async function loadDashboard() {
+        try {
+          const res = await fetch(API_BASE + "/api/dashboard", { cache: "no-store" });
+          const data = await res.json();
+          setConn(true);
+
+          $("companyName").textContent = data.profile?.name || "MarketHub";
+          $("companyTagline").textContent = data.profile?.tagline || "";
+
+          const metrics = data.metrics || [];
+          const social = metrics.filter(m => m.category === "social");
+          const analytics = metrics.filter(m => m.category === "analytics");
+
+          // hero: first 4 analytics-ish highlights (fallback to any)
+          const highlights = (analytics.length ? analytics : metrics).slice(0, 4);
+          $("heroStats").innerHTML = highlights.map(m => card(m.label, m.value, m.change)).join("");
+
+          $("social").innerHTML = social.map(m => card(m.label, m.value, m.change)).join("");
+          $("analytics").innerHTML = analytics.map(m => card(m.label, m.value, m.change)).join("");
+
+          $("reviews").innerHTML = (data.reviews || []).map(r => `
+            <div class="row">
+              <div>
+                <div>${r.author} <span class="tag">${r.platform}</span></div>
+                <div class="sub">${r.comment}</div>
+              </div>
+              <div class="stars">★ ${r.rating}</div>
+            </div>`).join("") || `<div class="row"><div class="sub">No reviews yet.</div></div>`;
+
+          $("customers").innerHTML = (data.customers || []).map(c => `
+            <div class="row">
+              <div>
+                <div>${c.name}</div>
+                <div class="sub">${c.company} • ${c.contact}</div>
+              </div>
+              <div class="tag">${c.status}</div>
+            </div>`).join("") || `<div class="row"><div class="sub">No customers yet.</div></div>`;
+        } catch (e) {
+          setConn(false);
+        }
+      }
+
+      async function generate(mode) {
+        const text = $("aiPrompt").value.trim();
+        const out = $("aiOutput");
+        out.textContent = "Thinking…";
+        // The backend detects the type from keywords, so prepend the mode word.
+        const prompt = mode === "idea" ? text : (mode + ": " + text);
+        try {
+          const res = await fetch(API_BASE + "/api/ai/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: prompt || mode }),
+          });
+          const data = await res.json();
+          out.innerHTML = `${data.text || "(no response)"}<span class="src">source: ${data.source || "?"}${data.error ? " — " + data.error : ""}</span>`;
+        } catch (e) {
+          out.textContent = "Could not reach the Pi. Is the server running on " + API_BASE + "?";
+        }
+      }
+
+      const updateTime = () => { $("datetime").textContent = new Date().toLocaleString(); };
       updateTime();
       setInterval(updateTime, 1000);
+      loadDashboard();
+      setInterval(loadDashboard, 15000);
     </script>
   </body>
 </html>
