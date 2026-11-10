@@ -3,246 +3,292 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MarketHub Dashboard</title>
+    <title>MarketHub</title>
     <style>
       :root {
-        --bg: #07111f;
-        --panel: #0d1728;
-        --panel-2: #13253e;
+        --bg: #060d1a;
+        --panel: #0e1a2e;
+        --panel-2: #14263f;
+        --line: rgba(96,165,250,0.18);
         --accent: #3b82f6;
-        --accent-2: #60a5fa;
-        --text: #e5f2ff;
-        --muted: #8da5c8;
+        --accent-2: #8b5cf6;
+        --text: #eaf3ff;
+        --muted: #8ba3c7;
         --good: #34d399;
         --warn: #fbbf24;
+        --bad: #f87171;
       }
-      * { box-sizing: border-box; }
+      * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      html, body { height: 100%; }
       body {
         margin: 0;
-        font-family: "Segoe UI", Inter, Arial, sans-serif;
-        background: radial-gradient(circle at top, #11253f 0%, var(--bg) 48%, #040814 100%);
+        font-family: "Segoe UI", Inter, system-ui, Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 20% -10%, #15294a 0%, var(--bg) 55%);
         color: var(--text);
-        min-height: 100vh;
+        overflow: hidden;
       }
-      .shell { max-width: 1400px; margin: 0 auto; padding: 20px; }
-      .topbar, .card, .hero, .panel {
-        background: rgba(13, 23, 40, 0.92);
-        border: 1px solid rgba(96, 165, 250, 0.2);
-        box-shadow: 0 20px 45px rgba(2, 6, 23, 0.35);
+      .app { display: flex; height: 100vh; }
+
+      /* ---------- Side nav ---------- */
+      .nav {
+        width: 112px; flex: 0 0 112px;
+        background: rgba(8,15,28,0.9);
+        border-right: 1px solid var(--line);
+        display: flex; flex-direction: column; gap: 6px;
+        padding: 14px 10px;
       }
+      .brand { display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom: 10px; }
+      .logo {
+        width: 46px; height: 46px; border-radius: 14px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: grid; place-items: center; font-weight: 900; font-size: 18px;
+      }
+      .brand small { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+      .navbtn {
+        border: 1px solid transparent; background: transparent; color: var(--muted);
+        border-radius: 14px; padding: 12px 6px; cursor: pointer;
+        display: flex; flex-direction: column; align-items: center; gap: 5px;
+        font-size: 11.5px; font-weight: 600;
+      }
+      .navbtn .ico { font-size: 22px; }
+      .navbtn.active { color: var(--text); background: rgba(59,130,246,0.16); border-color: var(--line); }
+      .navbtn:active { transform: scale(0.96); }
+
+      /* ---------- Main ---------- */
+      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       .topbar {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 16px 20px; border-radius: 24px; margin-bottom: 18px; gap: 12px;
-        flex-wrap: wrap;
+        padding: 12px 18px; border-bottom: 1px solid var(--line);
       }
-      .brand { display: flex; align-items: center; gap: 12px; }
-      .logo {
-        width: 42px; height: 42px; border-radius: 14px;
-        background: linear-gradient(135deg, var(--accent), #8b5cf6);
-        display: grid; place-items: center; font-weight: 800;
-      }
-      .title h1 { margin: 0; font-size: 20px; }
-      .title p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
-      .status-group { display: flex; gap: 8px; flex-wrap: wrap; }
-      .pill {
-        padding: 7px 12px; border-radius: 999px; font-size: 13px;
-        background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.25);
-      }
-      .pill .dot { color: var(--good); }
-      .pill.off .dot { color: #f87171; }
+      .topbar h1 { margin: 0; font-size: 18px; }
+      .topbar .sub { color: var(--muted); font-size: 12px; }
+      .status { display: flex; gap: 8px; align-items: center; }
+      .pill { padding: 7px 12px; border-radius: 999px; font-size: 13px; background: rgba(96,165,250,0.12); border: 1px solid var(--line); white-space: nowrap; }
+      .pill .dot { color: var(--good); } .pill.off .dot { color: var(--bad); }
 
-      .hero {
-        display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px;
-        padding: 20px; border-radius: 24px; margin-bottom: 18px;
-      }
-      .hero h2 { margin: 0 0 8px; font-size: 22px; }
-      .hero p { color: var(--muted); margin: 0 0 16px; }
+      .content { flex: 1; overflow-y: auto; padding: 16px 18px; }
+      .tab { display: none; } .tab.active { display: block; }
 
-      /* AI assistant */
-      .ai textarea {
-        width: 100%; min-height: 70px; resize: vertical; border-radius: 14px;
-        background: #0a1526; color: var(--text); border: 1px solid rgba(96,165,250,0.3);
-        padding: 12px; font-size: 15px; font-family: inherit;
+      .grid { display: grid; gap: 12px; }
+      .g4 { grid-template-columns: repeat(4, 1fr); }
+      .g2 { grid-template-columns: repeat(2, 1fr); }
+      .tile {
+        background: linear-gradient(160deg, var(--panel), var(--panel-2));
+        border: 1px solid var(--line); border-radius: 18px; padding: 16px;
+        box-shadow: 0 16px 30px rgba(2,6,23,0.35);
       }
-      .ai-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+      .tile h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+      .tile .value { font-size: 30px; font-weight: 900; letter-spacing: -0.5px; }
+      .tile .meta { margin-top: 4px; font-size: 13px; }
+      .up { color: var(--good); } .down { color: var(--bad); }
+      .section-title { margin: 6px 2px 10px; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+      /* AI */
+      .ai-wrap { max-width: 820px; }
+      textarea {
+        width: 100%; min-height: 96px; resize: none; border-radius: 16px;
+        background: #0a1526; color: var(--text); border: 1px solid var(--line);
+        padding: 14px; font-size: 17px; font-family: inherit;
+      }
+      .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
       button {
-        cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px;
-        font-size: 14px; font-weight: 600; color: var(--text);
-        background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
+        cursor: pointer; border: 1px solid var(--line); border-radius: 14px;
+        padding: 14px 18px; font-size: 15px; font-weight: 700; color: var(--text);
+        background: rgba(96,165,250,0.14); min-height: 50px;
       }
-      button.primary { background: linear-gradient(135deg, var(--accent), #8b5cf6); border: none; }
+      button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; }
       button:active { transform: translateY(1px); }
-      .ai-output {
-        margin-top: 12px; padding: 14px; border-radius: 14px; min-height: 56px;
-        background: #0a1526; border: 1px solid rgba(52,211,153,0.3); white-space: pre-wrap;
-        font-size: 15px; line-height: 1.5;
+      .output {
+        margin-top: 14px; padding: 16px; border-radius: 16px; min-height: 90px;
+        background: #0a1526; border: 1px solid rgba(52,211,153,0.35);
+        font-size: 17px; line-height: 1.55; white-space: pre-wrap;
       }
-      .ai-output .src { color: var(--muted); font-size: 12px; display: block; margin-top: 8px; }
+      .output .src { display:block; color: var(--muted); font-size: 12px; margin-top: 10px; }
+      .copybtn { margin-top: 10px; }
 
-      .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-      .card {
-        border-radius: 18px; padding: 14px;
-      }
-      .card h3 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
-      .card .value { font-size: 22px; font-weight: 800; }
-      .card .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
-      .change.up { color: var(--good); } .change.down { color: #f87171; }
-
-      .section-title { margin: 22px 4px 10px; font-size: 15px; color: var(--muted); letter-spacing: .5px; text-transform: uppercase; }
-      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-      .list .row {
-        display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px;
-        border-bottom: 1px solid rgba(96,165,250,0.12);
-      }
+      .list .row { display: flex; justify-content: space-between; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
       .list .row:last-child { border-bottom: none; }
-      .list .row .sub { color: var(--muted); font-size: 13px; }
-      .tag { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(96,165,250,0.15); }
-      .stars { color: var(--warn); }
+      .list .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+      .tag { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(139,92,246,0.18); align-self: center; }
+      .stars { color: var(--warn); font-weight: 700; align-self: center; }
 
-      @media (max-width: 1100px) {
-        .hero { grid-template-columns: 1fr; }
-        .grid { grid-template-columns: repeat(2, 1fr); }
-      }
-      @media (max-width: 700px) {
-        .shell { padding: 12px; }
-        .grid { grid-template-columns: 1fr; }
-        .stats { grid-template-columns: 1fr 1fr; }
+      @media (max-width: 760px) {
+        .g4 { grid-template-columns: 1fr 1fr; }
+        .nav { width: 84px; flex-basis: 84px; }
       }
     </style>
   </head>
   <body>
-    <div class="shell">
-      <div class="topbar">
-        <div class="brand">
-          <div class="logo">MH</div>
-          <div class="title">
+    <div class="app">
+      <nav class="nav">
+        <div class="brand"><div class="logo">MH</div><small>MARKETHUB</small></div>
+        <button class="navbtn active" data-tab="home"><span class="ico">🏠</span>Home</button>
+        <button class="navbtn" data-tab="ai"><span class="ico">🤖</span>AI</button>
+        <button class="navbtn" data-tab="social"><span class="ico">📣</span>Social</button>
+        <button class="navbtn" data-tab="reviews"><span class="ico">⭐</span>Reviews</button>
+        <button class="navbtn" data-tab="customers"><span class="ico">👥</span>Leads</button>
+        <button class="navbtn" data-tab="settings"><span class="ico">⚙️</span>Settings</button>
+      </nav>
+
+      <div class="main">
+        <div class="topbar">
+          <div>
             <h1 id="companyName">MarketHub</h1>
-            <p id="companyTagline">Loading…</p>
+            <div class="sub" id="companyTagline">Loading…</div>
+          </div>
+          <div class="status">
+            <div class="pill" id="clock">--</div>
+            <div class="pill" id="connPill"><span class="dot">●</span> <span id="connText">Connecting…</span></div>
           </div>
         </div>
-        <div class="status-group">
-          <div class="pill" id="datetime">--</div>
-          <div class="pill" id="connPill"><span class="dot">●</span> <span id="connText">Connecting…</span></div>
+
+        <div class="content">
+          <!-- HOME -->
+          <section class="tab active" id="tab-home">
+            <div class="section-title">Overview</div>
+            <div class="grid g4" id="homeStats"></div>
+            <div class="section-title" style="margin-top:18px;">Quick post</div>
+            <div class="ai-wrap">
+              <textarea id="quickPrompt" placeholder="Type an idea… e.g. weekend special, 20% off screen repairs"></textarea>
+              <div class="btnrow">
+                <button class="primary" onclick="generate('caption','quickPrompt','quickOut')">✨ Make a caption</button>
+                <button onclick="generate('hashtags','quickPrompt','quickOut')"># Hashtags</button>
+              </div>
+              <div class="output" id="quickOut">Your post will appear here.</div>
+              <button class="copybtn" onclick="copyOut('quickOut')">📋 Copy</button>
+            </div>
+          </section>
+
+          <!-- AI -->
+          <section class="tab" id="tab-ai">
+            <div class="section-title">AI Assistant</div>
+            <div class="ai-wrap">
+              <textarea id="aiPrompt" placeholder="What do you want to write?"></textarea>
+              <div class="btnrow">
+                <button class="primary" onclick="generate('caption','aiPrompt','aiOut')">Caption</button>
+                <button onclick="generate('hashtags','aiPrompt','aiOut')">Hashtags</button>
+                <button onclick="generate('review reply','aiPrompt','aiOut')">Review reply</button>
+                <button onclick="generate('idea','aiPrompt','aiOut')">Idea</button>
+              </div>
+              <div class="output" id="aiOut">Pick a type and I'll write it.</div>
+              <button class="copybtn" onclick="copyOut('aiOut')">📋 Copy</button>
+            </div>
+          </section>
+
+          <!-- SOCIAL -->
+          <section class="tab" id="tab-social">
+            <div class="section-title">Social reach</div>
+            <div class="grid g4" id="social"></div>
+            <div class="section-title" style="margin-top:18px;">Analytics</div>
+            <div class="grid g4" id="analytics"></div>
+          </section>
+
+          <!-- REVIEWS -->
+          <section class="tab" id="tab-reviews">
+            <div class="section-title">Recent reviews</div>
+            <div class="tile list" id="reviews"></div>
+          </section>
+
+          <!-- CUSTOMERS -->
+          <section class="tab" id="tab-customers">
+            <div class="section-title">Leads & customers</div>
+            <div class="tile list" id="customers"></div>
+          </section>
+
+          <!-- SETTINGS -->
+          <section class="tab" id="tab-settings">
+            <div class="section-title">Settings</div>
+            <div class="tile">
+              <div style="line-height:2;">
+                <div><b>Business:</b> <span id="setName">—</span></div>
+                <div><b>Backend:</b> <span id="setApi"></span></div>
+                <div><b>Wi-Fi (setup AP):</b> <span id="setWifi">—</span></div>
+                <div><b>Status:</b> <span id="setStatus">—</span></div>
+              </div>
+              <p style="color:var(--muted);margin-top:14px;">To turn on real AI, restart the backend with your <code>ANTHROPIC_API_KEY</code> and <code>MARKETHUB_BRAND</code>. Press F11 for fullscreen kiosk mode.</p>
+            </div>
+          </section>
         </div>
       </div>
-
-      <section class="hero">
-        <div class="ai">
-          <h2>🤖 AI Assistant</h2>
-          <p>Type what you want, pick a type, and let Claude write it for you to post.</p>
-          <textarea id="aiPrompt" placeholder="e.g. a weekend special, 20% off screen repairs"></textarea>
-          <div class="ai-buttons">
-            <button class="primary" onclick="generate('caption')">Caption</button>
-            <button onclick="generate('hashtags')">Hashtags</button>
-            <button onclick="generate('review reply')">Review reply</button>
-            <button onclick="generate('idea')">Idea</button>
-          </div>
-          <div class="ai-output" id="aiOutput">Your generated content will appear here.</div>
-        </div>
-        <div class="stats" id="heroStats"></div>
-      </section>
-
-      <div class="section-title">Social</div>
-      <section class="grid" id="social"></section>
-
-      <div class="section-title">Analytics</div>
-      <section class="grid" id="analytics"></section>
-
-      <div class="section-title">Recent reviews</div>
-      <section class="panel list" id="reviews" style="border-radius:18px;"></section>
-
-      <div class="section-title">Customers</div>
-      <section class="panel list" id="customers" style="border-radius:18px;"></section>
     </div>
 
     <script>
-      // If you open this page on the Pi itself you can use "http://localhost:8000".
-      // From a phone/laptop on the same Wi-Fi, use the Pi's IP:
+      // On the Pi itself you can use "http://localhost:8000".
+      // From a phone on the same Wi-Fi, use the Pi's IP.
       const API_BASE = "http://192.168.1.207:8000";
-
       const $ = (id) => document.getElementById(id);
 
-      function setConn(ok) {
-        const pill = $("connPill");
-        $("connText").textContent = ok ? "Pi connected" : "Pi offline";
-        pill.classList.toggle("off", !ok);
-      }
+      // tab switching
+      document.querySelectorAll('.navbtn').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('.navbtn').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        $('tab-' + b.dataset.tab).classList.add('active');
+      }));
 
-      function card(label, value, change) {
-        const dir = (change || "").trim().startsWith("-") ? "down" : "up";
-        return `<div class="card">
-          <h3>${label}</h3>
-          <div class="value">${value || "--"}</div>
-          <div class="meta change ${dir}">${change || ""}</div>
-        </div>`;
+      function setConn(ok) {
+        $('connText').textContent = ok ? 'Pi connected' : 'Pi offline';
+        $('connPill').classList.toggle('off', !ok);
+        $('setStatus').textContent = ok ? 'Connected' : 'Offline';
+      }
+      function tile(label, value, change) {
+        const dir = (change || '').trim().startsWith('-') ? 'down' : 'up';
+        return `<div class="tile"><h3>${label}</h3><div class="value">${value || '--'}</div><div class="meta ${dir}">${change || ''}</div></div>`;
       }
 
       async function loadDashboard() {
         try {
-          const res = await fetch(API_BASE + "/api/dashboard", { cache: "no-store" });
-          const data = await res.json();
+          const r = await fetch(API_BASE + '/api/dashboard', { cache: 'no-store' });
+          const d = await r.json();
           setConn(true);
+          $('companyName').textContent = d.profile?.name || 'MarketHub';
+          $('companyTagline').textContent = d.profile?.tagline || '';
+          $('setName').textContent = d.profile?.name || '—';
+          $('setWifi').textContent = d.profile?.wifi_ssid || '—';
 
-          $("companyName").textContent = data.profile?.name || "MarketHub";
-          $("companyTagline").textContent = data.profile?.tagline || "";
+          const m = d.metrics || [];
+          const social = m.filter(x => x.category === 'social');
+          const analytics = m.filter(x => x.category === 'analytics');
+          $('homeStats').innerHTML = (analytics.length ? analytics : m).slice(0,4).map(x => tile(x.label, x.value, x.change)).join('');
+          $('social').innerHTML = social.map(x => tile(x.label, x.value, x.change)).join('');
+          $('analytics').innerHTML = analytics.map(x => tile(x.label, x.value, x.change)).join('');
 
-          const metrics = data.metrics || [];
-          const social = metrics.filter(m => m.category === "social");
-          const analytics = metrics.filter(m => m.category === "analytics");
+          $('reviews').innerHTML = (d.reviews || []).map(x => `
+            <div class="row"><div><div>${x.author} <span class="tag">${x.platform}</span></div>
+            <div class="sub">${x.comment}</div></div><div class="stars">★ ${x.rating}</div></div>`).join('')
+            || '<div class="row"><div class="sub">No reviews yet.</div></div>';
 
-          // hero: first 4 analytics-ish highlights (fallback to any)
-          const highlights = (analytics.length ? analytics : metrics).slice(0, 4);
-          $("heroStats").innerHTML = highlights.map(m => card(m.label, m.value, m.change)).join("");
-
-          $("social").innerHTML = social.map(m => card(m.label, m.value, m.change)).join("");
-          $("analytics").innerHTML = analytics.map(m => card(m.label, m.value, m.change)).join("");
-
-          $("reviews").innerHTML = (data.reviews || []).map(r => `
-            <div class="row">
-              <div>
-                <div>${r.author} <span class="tag">${r.platform}</span></div>
-                <div class="sub">${r.comment}</div>
-              </div>
-              <div class="stars">★ ${r.rating}</div>
-            </div>`).join("") || `<div class="row"><div class="sub">No reviews yet.</div></div>`;
-
-          $("customers").innerHTML = (data.customers || []).map(c => `
-            <div class="row">
-              <div>
-                <div>${c.name}</div>
-                <div class="sub">${c.company} • ${c.contact}</div>
-              </div>
-              <div class="tag">${c.status}</div>
-            </div>`).join("") || `<div class="row"><div class="sub">No customers yet.</div></div>`;
-        } catch (e) {
-          setConn(false);
-        }
+          $('customers').innerHTML = (d.customers || []).map(x => `
+            <div class="row"><div><div>${x.name}</div>
+            <div class="sub">${x.company} • ${x.contact}</div></div><div class="tag">${x.status}</div></div>`).join('')
+            || '<div class="row"><div class="sub">No leads yet.</div></div>';
+        } catch (e) { setConn(false); }
       }
 
-      async function generate(mode) {
-        const text = $("aiPrompt").value.trim();
-        const out = $("aiOutput");
-        out.textContent = "Thinking…";
-        // The backend detects the type from keywords, so prepend the mode word.
-        const prompt = mode === "idea" ? text : (mode + ": " + text);
+      async function generate(mode, inId, outId) {
+        const text = $(inId).value.trim();
+        const out = $(outId);
+        out.textContent = 'Thinking…';
+        const prompt = mode === 'idea' ? text : (mode + ': ' + text);
         try {
-          const res = await fetch(API_BASE + "/api/ai/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          const r = await fetch(API_BASE + '/api/ai/generate', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt || mode }),
           });
-          const data = await res.json();
-          out.innerHTML = `${data.text || "(no response)"}<span class="src">source: ${data.source || "?"}${data.error ? " — " + data.error : ""}</span>`;
-        } catch (e) {
-          out.textContent = "Could not reach the Pi. Is the server running on " + API_BASE + "?";
-        }
+          const d = await r.json();
+          out.innerHTML = `${d.text || '(no response)'}<span class="src">source: ${d.source || '?'}${d.error ? ' — ' + d.error : ''}</span>`;
+        } catch (e) { out.textContent = 'Could not reach the Pi backend at ' + API_BASE + '.'; }
       }
 
-      const updateTime = () => { $("datetime").textContent = new Date().toLocaleString(); };
-      updateTime();
-      setInterval(updateTime, 1000);
-      loadDashboard();
-      setInterval(loadDashboard, 15000);
+      function copyOut(id) {
+        const t = $(id).innerText.replace(/\s*source:.*$/s, '').trim();
+        navigator.clipboard?.writeText(t);
+      }
+
+      $('setApi').textContent = API_BASE;
+      const clock = () => $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      clock(); setInterval(clock, 1000);
+      loadDashboard(); setInterval(loadDashboard, 15000);
     </script>
   </body>
 </html>
