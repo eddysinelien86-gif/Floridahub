@@ -4,7 +4,7 @@
 
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
-const char* apiUrl = "http://pi.local:8000/api/dashboard";
+const char* apiUrl = "http://192.168.1.207:8000/api/dashboard";
 
 void connectWiFi() {
   Serial.begin(115200);

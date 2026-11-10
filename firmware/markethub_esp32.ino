@@ -7,7 +7,7 @@
 
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-const char* API_URL = "http://pi.local:8000/api/dashboard";
+const char* API_URL = "http://192.168.1.207:8000/api/dashboard";
 
 void connectWifi() {
   WiFi.mode(WIFI_STA);
