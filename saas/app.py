@@ -158,6 +158,50 @@ def dashboard():
     )
 
 
+@app.route("/team")
+def team():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    members = query(
+        "SELECT id, email, created_at FROM users WHERE tenant_id = ? ORDER BY id",
+        (u["tenant_id"],),
+    )
+    return render_template("team.html", user=u, members=members, error=None, ok=request.args.get("ok"))
+
+
+@app.route("/team/add", methods=["POST"])
+def team_add():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    email = request.form.get("email", "").strip().lower()
+    pw = request.form.get("password", "")
+    members = query("SELECT id, email, created_at FROM users WHERE tenant_id = ? ORDER BY id", (u["tenant_id"],))
+    if not (email and pw):
+        return render_template("team.html", user=u, members=members, error="Enter an email and a password.", ok=None)
+    if len(pw) < 6:
+        return render_template("team.html", user=u, members=members, error="Password must be at least 6 characters.", ok=None)
+    if query_one("SELECT 1 AS x FROM users WHERE email = ?", (email,)):
+        return render_template("team.html", user=u, members=members, error="That email is already in use.", ok=None)
+    execute("INSERT INTO users (tenant_id, email, password_hash) VALUES (?, ?, ?)",
+            (u["tenant_id"], email, generate_password_hash(pw)))
+    return redirect(url_for("team", ok=1))
+
+
+@app.route("/team/remove", methods=["POST"])
+def team_remove():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    uid = request.form.get("uid", "")
+    count = query_one("SELECT COUNT(*) AS c FROM users WHERE tenant_id = ?", (u["tenant_id"],))["c"]
+    # Never remove yourself or the last remaining login.
+    if str(uid) != str(u["id"]) and count > 1:
+        execute("DELETE FROM users WHERE id = ? AND tenant_id = ?", (uid, u["tenant_id"]))
+    return redirect(url_for("team"))
+
+
 @app.route("/subscribe", methods=["POST"])
 def subscribe():
     u = current_user()
