@@ -60,3 +60,21 @@ def send_lead_alert(to_email: str, company: str, name: str, contact: str, servic
         print(f"[notify] lead alert sent to {to_email}")
     except Exception as exc:
         print(f"[notify] alert send failed: {exc}")
+
+
+def send_email(to_email: str, subject: str, body: str, from_name: str = "") -> None:
+    """Generic email (used for messaging leads). Raises if SMTP isn't configured
+    or the send fails, so the caller can count successes."""
+    c = _cfg()
+    if not (c["user"] and c["pw"] and to_email):
+        raise RuntimeError("email not configured")
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = f"{from_name} <{c['frm']}>" if from_name else c["frm"]
+    msg["To"] = to_email
+    msg.set_content(body)
+    ctx = ssl.create_default_context()
+    with smtplib.SMTP(c["host"], c["port"], timeout=20) as s:
+        s.starttls(context=ctx)
+        s.login(c["user"], c["pw"])
+        s.send_message(msg)

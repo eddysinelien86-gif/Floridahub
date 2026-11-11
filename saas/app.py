@@ -294,23 +294,72 @@ def dashboard():
     )
     for lead in leads:
         lead["is_old"] = _lead_is_old(lead.get("created_at"))
+        contact = (lead.get("contact") or "").strip()
+        digits = "".join(ch for ch in contact if ch.isdigit())
+        if "@" in contact:
+            lead["ctype"], lead["tel"] = "email", ""
+        elif len(digits) >= 7:
+            lead["ctype"], lead["tel"] = "phone", digits
+        else:
+            lead["ctype"], lead["tel"] = "other", ""
     new_leads = sum(1 for l in leads if l["status"] == "New")
+    leads_7d = sum(1 for l in leads if not _lead_is_old(l.get("created_at"), 7))
+    email_leads = sum(1 for l in leads if l["ctype"] == "email")
     review_count, rating = _company_stats(tid)
     reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:5]
     posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (tid,))
     socials = query("SELECT * FROM social_log WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:6]
+    social_total = query_one("SELECT COUNT(*) AS c FROM social_log WHERE tenant_id = ?", (tid,))["c"]
+    pv = query("SELECT created_at FROM page_views WHERE tenant_id = ?", (tid,))
+    views_total = len(pv)
+    views_7d = sum(1 for r in pv if not _lead_is_old(r.get("created_at"), 7))
+    conversion = round(100.0 * len(leads) / views_total, 1) if views_total else 0.0
     base = (os.environ.get("APP_URL", "").strip() or request.host_url).rstrip("/")
     stats = {
-        "leads": len(leads), "new": new_leads, "reviews": review_count,
-        "rating": rating, "posts": len(posts), "socials": len(socials),
+        "leads": len(leads), "new": new_leads, "leads_7d": leads_7d,
+        "reviews": review_count, "rating": rating, "posts": len(posts),
+        "socials": social_total, "views": views_total, "views_7d": views_7d,
+        "conversion": conversion, "email_leads": email_leads,
     }
     return render_template(
-        "dashboard.html", user=u, leads=leads[:8], stats=stats, reviews=reviews,
+        "dashboard.html", user=u, leads=leads[:10], stats=stats, reviews=reviews,
         posts=posts[:6], socials=socials, rating=rating, review_count=review_count,
         form_url=base + url_for("public_form", slug=u["tslug"]),
         profile_url=base + url_for("company", slug=u["tslug"]),
         billing_on=BILLING_ON, price_label=PLAN_PRICE_LABEL,
+        emailed=request.args.get("emailed"),
     )
+
+
+def _track_view(tenant_id, kind):
+    try:
+        execute("INSERT INTO page_views (tenant_id, kind) VALUES (?, ?)", (tenant_id, kind))
+    except Exception:
+        pass
+
+
+@app.route("/leads/email", methods=["POST"])
+def leads_email():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    subject = request.form.get("subject", "").strip() or f"A message from {u['tname']}"
+    body = request.form.get("message", "").strip()
+    if not body:
+        return redirect(url_for("dashboard"))
+    import notify
+    recipients = [
+        l["contact"] for l in query("SELECT contact FROM leads WHERE tenant_id = ?", (u["tenant_id"],))
+        if l["contact"] and "@" in l["contact"]
+    ]
+    sent = 0
+    for to in set(recipients):
+        try:
+            notify.send_email(to, subject, body, from_name=u["tname"])
+            sent += 1
+        except Exception:
+            pass
+    return redirect(url_for("dashboard", emailed=sent))
 
 
 @app.route("/team")
@@ -467,6 +516,7 @@ def public_form(slug):
     t = query_one("SELECT * FROM tenants WHERE slug = ?", (slug,))
     if not t:
         abort(404)
+    _track_view(t["id"], "form")
     return render_template("lead_form.html", tenant=t, services=SERVICES)
 
 
@@ -525,6 +575,7 @@ def company(slug):
     t = query_one("SELECT * FROM tenants WHERE slug = ?", (slug,))
     if not t:
         abort(404)
+    _track_view(t["id"], "profile")
     count, avg = _company_stats(t["id"])
     posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
     reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))

@@ -17,6 +17,22 @@
   <div class="stat"><div class="v">{{ stats.socials }}</div><div class="k">Auto social posts</div></div>
 </div>
 
+<!-- analytics -->
+<div class="card">
+  <h2>📈 Traffic &amp; performance</h2>
+  <p class="muted">How your AI LeadPilot pages are doing. (Connect Google/Meta later for website &amp; ad traffic too.)</p>
+  <div class="grid" style="margin-bottom:0;">
+    <div class="stat"><div class="v">{{ stats.views }}</div><div class="k">Page views (all time)</div></div>
+    <div class="stat"><div class="v">{{ stats.views_7d }}</div><div class="k">Views last 7 days</div></div>
+    <div class="stat"><div class="v">{{ stats.leads_7d }}</div><div class="k">Leads last 7 days</div></div>
+    <div class="stat"><div class="v">{{ stats.conversion }}%</div><div class="k">Visitor → lead rate</div></div>
+  </div>
+  <p class="muted" style="font-size:13px;margin-top:14px;">
+    🤖 Bot check: your social bot has made <b>{{ stats.socials }}</b> auto-posts, driving visitors to your form.
+    {% if stats.leads %}It's working — <b>{{ stats.leads }}</b> leads captured so far.{% else %}No leads yet — share your form link below to start.{% endif %}
+  </p>
+</div>
+
 <!-- what your company is generating: social activity -->
 <div class="card">
   <h2>🤖 Your automatic social posts</h2>
@@ -102,19 +118,41 @@
   {% endif %}
 </div>
 
+<!-- email all leads -->
+<div class="card">
+  <h2>✉️ Message your leads</h2>
+  <p class="muted">Send an email to <b>all {{ stats.email_leads }}</b> lead{{ '' if stats.email_leads == 1 else 's' }} with an email address — write it yourself or have AI draft it.</p>
+  {% if emailed is not none %}<div class="out" style="border-color:rgba(52,211,153,.4);">✅ Sent to {{ emailed }} lead(s).</div>{% endif %}
+  <form method="post" action="/leads/email">
+    <label>Subject</label>
+    <input name="subject" id="emSubject" placeholder="A quick note from {{ user['tname'] }}">
+    <label>Message</label>
+    <textarea name="message" id="emBody" placeholder="Hi! Thanks for your interest — ready to book your free quote?"></textarea>
+    <div class="btnrow">
+      <button type="button" class="btn ghost" onclick="draftEmail()">✨ AI draft</button>
+      <button type="submit">Send to all leads →</button>
+    </div>
+  </form>
+  {% if stats.email_leads == 0 %}<p class="muted" style="font-size:13px;margin-top:8px;">No leads have an email yet (phone leads show a Call button below).</p>{% endif %}
+</div>
+
 <!-- leads table -->
 <div class="card">
   <h2>📥 Recent leads</h2>
   {% if leads %}
   <table>
-    <tr><th>Name</th><th>Contact</th><th>Service</th><th>Status</th><th>When</th></tr>
+    <tr><th>Name</th><th>Contact</th><th>Service</th><th>Status</th><th>Reach out</th></tr>
     {% for l in leads %}
     <tr>
       <td>{{ l['name'] or '—' }}</td>
       <td>{{ l['contact'] or '—' }}</td>
       <td>{{ l['service'] or '—' }}</td>
       <td><span class="tag">{{ l['status'] }}</span>{% if l['is_old'] %} <span class="tag" style="background:rgba(148,163,184,.2);color:#94a3b8;">Old</span>{% endif %}</td>
-      <td class="muted">{{ (l['created_at']|string)[:16] }}</td>
+      <td>
+        {% if l['ctype'] == 'phone' %}<a class="btn ghost" style="margin:0;padding:6px 12px;font-size:13px;" href="tel:{{ l['tel'] }}">📞 Call</a>
+        {% elif l['ctype'] == 'email' %}<a class="btn ghost" style="margin:0;padding:6px 12px;font-size:13px;" href="mailto:{{ l['contact'] }}">✉️ Email</a>
+        {% else %}<span class="muted" style="font-size:13px;">—</span>{% endif %}
+      </td>
     </tr>
     {% endfor %}
   </table>
@@ -142,5 +180,14 @@
     catch(e){out.textContent='Could not reach the AI.';}
   }
   function copyAI(){const t=document.getElementById('aiOut').textContent.replace(/\n\n— .*$/,'');navigator.clipboard&&navigator.clipboard.writeText(t);}
+  async function draftEmail(){
+    const body=document.getElementById('emBody');const subj=document.getElementById('emSubject');
+    body.value='Drafting…';
+    try{const r=await fetch('/ai/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:'Write a short, friendly outreach email to a homeowner lead inviting them to book their free insulation quote. Warm, 3-4 sentences, no subject line.'})});
+      const d=await r.json();body.value=(d.text||'').trim();
+      if(!subj.value)subj.value='Ready for your free quote?';}
+    catch(e){body.value='';}
+  }
 </script>
 {% endblock %}
