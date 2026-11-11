@@ -62,6 +62,13 @@ def init_db() -> None:
         """
     )
 
+    # add hot_leads to older profiles tables that predate it (prevents the
+    # "table profiles has no column named hot_leads" error on upgraded DBs)
+    try:
+        conn.execute("ALTER TABLE profiles ADD COLUMN hot_leads INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     conn.execute("DELETE FROM profiles")
     conn.execute(
         "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads) "
