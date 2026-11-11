@@ -26,6 +26,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import random
 import time
 import urllib.parse
 import urllib.request
@@ -41,6 +42,45 @@ SERVICES = [
     ("spray foam insulation", "seal your home tight for year-round comfort"),
     ("crawlspace insulation", "stop moisture and drafts from under the house"),
     ("energy audits", "find exactly where your home is leaking money"),
+]
+
+# Several caption variations per service so repeated posts stay fresh without
+# needing the AI. One is picked at random each run.
+CAPTION_BANK = {
+    "attic insulation": [
+        "🏠 Is your attic turning your house into an oven? Proper attic insulation keeps the Florida heat OUT and your AC bill DOWN.",
+        "☀️ Broward summers are brutal — but a well-insulated attic means a cooler home and smaller electric bills all year.",
+        "💸 Paying FPL too much? Most of that heat sneaks in through the attic. Let's fix it with pro attic insulation.",
+        "🔥 Hot upstairs, cold downstairs? That's an attic insulation problem — and we solve it fast.",
+    ],
+    "spray foam insulation": [
+        "🧊 Spray foam seals every gap, crack, and leak — the gold standard for comfort and energy savings in South Florida.",
+        "💪 Spray foam insulation doesn't just insulate, it air-seals your whole home. Lower bills, quieter rooms, more comfort.",
+        "🏡 Want the best? Spray foam locks out heat, moisture, and bugs — built for the Florida climate.",
+        "⚡ Cut your energy bills and boost comfort with professional spray foam insulation from a local Broward crew.",
+    ],
+    "crawlspace insulation": [
+        "🐜 Moisture, drafts, and critters love an un-insulated crawlspace. Let's seal it up and protect your home.",
+        "🌊 Florida humidity creeping in from below? Crawlspace insulation stops moisture and keeps your floors comfortable.",
+        "🏠 Cold floors and musty air often start under the house. Crawlspace insulation fixes it at the source.",
+    ],
+    "energy audits": [
+        "🔍 Not sure where your home is losing money? A FREE energy audit shows exactly where you're leaking cash.",
+        "📋 Before you spend a dime, let us find the real problem. Our energy audit pinpoints every leak and draft.",
+        "💡 Save smarter, not harder — a professional energy audit tells you exactly what to fix first.",
+    ],
+}
+HASHTAG_SETS = [
+    "#Insulation #SprayFoam #Broward #EnergySavings #SouthFlorida #HomeImprovement",
+    "#BrowardCounty #Insulation #LowerBills #SprayFoam #FloridaHomes #EnergyEfficiency",
+    "#SprayFoam #AtticInsulation #Broward #FloridaLiving #SaveEnergy #HomeComfort",
+    "#Insulation #EnergyAudit #SouthFlorida #Broward #HomeUpgrade #LowerYourBills",
+]
+CLOSERS = [
+    "Get your FREE quote in minutes! 👇",
+    "Book your FREE quote today — fast, honest, local. 👇",
+    "Tap for a FREE quote — serving all of Broward County. 👇",
+    "Free quotes, no pressure. Reach out today! 👇",
 ]
 
 
@@ -87,12 +127,8 @@ def _ai_caption(service: str, angle: str) -> str:
                 return text
         except Exception as exc:
             print(f"[bot] AI caption failed, using template: {exc}")
-    return (
-        f"🏠 Thinking about {service}? We can help you {angle}. "
-        f"In & Out Insulation & Spray Foam of Broward serves all of Broward County — "
-        f"fast, honest, local. Get your FREE quote in minutes! 👇\n"
-        f"#Insulation #SprayFoam #Broward #EnergySavings #SouthFlorida #HomeImprovement"
-    )
+    opener = random.choice(CAPTION_BANK.get(service, [f"🏠 Thinking about {service}? We can help you {angle}."]))
+    return f"{opener} {random.choice(CLOSERS)}\n{random.choice(HASHTAG_SETS)}"
 
 
 def _post(url: str, data: dict) -> dict:
