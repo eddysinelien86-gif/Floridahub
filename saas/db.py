@@ -102,6 +102,9 @@ def init_schema() -> None:
             created_at {ts})""",
         f"""CREATE TABLE IF NOT EXISTS page_views (
             id {pk}, tenant_id INTEGER NOT NULL, kind TEXT, created_at {ts})""",
+        f"""CREATE TABLE IF NOT EXISTS messages (
+            id {pk}, tenant_id INTEGER, direction TEXT, phone TEXT, body TEXT,
+            created_at {ts})""",
     ]
     conn = _conn()
     try:

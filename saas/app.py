@@ -305,6 +305,7 @@ def dashboard():
     new_leads = sum(1 for l in leads if l["status"] == "New")
     leads_7d = sum(1 for l in leads if not _lead_is_old(l.get("created_at"), 7))
     email_leads = sum(1 for l in leads if l["ctype"] == "email")
+    phone_leads = sum(1 for l in leads if l["ctype"] == "phone")
     review_count, rating = _company_stats(tid)
     reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:5]
     posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (tid,))
@@ -315,11 +316,13 @@ def dashboard():
     views_7d = sum(1 for r in pv if not _lead_is_old(r.get("created_at"), 7))
     conversion = round(100.0 * len(leads) / views_total, 1) if views_total else 0.0
     base = (os.environ.get("APP_URL", "").strip() or request.host_url).rstrip("/")
+    import sms as _sms
+    msgs = query("SELECT * FROM messages WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:8]
     stats = {
         "leads": len(leads), "new": new_leads, "leads_7d": leads_7d,
         "reviews": review_count, "rating": rating, "posts": len(posts),
         "socials": social_total, "views": views_total, "views_7d": views_7d,
-        "conversion": conversion, "email_leads": email_leads,
+        "conversion": conversion, "email_leads": email_leads, "phone_leads": phone_leads,
     }
     return render_template(
         "dashboard.html", user=u, leads=leads[:10], stats=stats, reviews=reviews,
@@ -327,7 +330,8 @@ def dashboard():
         form_url=base + url_for("public_form", slug=u["tslug"]),
         profile_url=base + url_for("company", slug=u["tslug"]),
         billing_on=BILLING_ON, price_label=PLAN_PRICE_LABEL,
-        emailed=request.args.get("emailed"),
+        emailed=request.args.get("emailed"), texted=request.args.get("texted"),
+        sms_enabled=_sms.is_configured(), messages=msgs,
     )
 
 
@@ -360,6 +364,49 @@ def leads_email():
         except Exception:
             pass
     return redirect(url_for("dashboard", emailed=sent))
+
+
+@app.route("/leads/sms", methods=["POST"])
+def leads_sms():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    body = request.form.get("message", "").strip()
+    if not body:
+        return redirect(url_for("dashboard"))
+    import sms as smsmod
+    phones = []
+    for l in query("SELECT contact FROM leads WHERE tenant_id = ?", (u["tenant_id"],)):
+        contact = (l["contact"] or "")
+        digits = "".join(ch for ch in contact if ch.isdigit())
+        if "@" not in contact and len(digits) >= 10:
+            phones.append(contact)
+    sent = 0
+    for p in set(phones):
+        try:
+            smsmod.send_sms(p, body)
+            execute("INSERT INTO messages (tenant_id, direction, phone, body) VALUES (?, ?, ?, ?)",
+                    (u["tenant_id"], "out", p, body))
+            sent += 1
+        except Exception:
+            pass
+    return redirect(url_for("dashboard", texted=sent))
+
+
+@app.route("/sms/incoming", methods=["POST"])
+def sms_incoming():
+    """Twilio posts here when someone texts your number. Logs the reply so it
+    shows on the dashboard. Point your Twilio number's Messaging webhook here."""
+    frm = request.form.get("From", "")
+    body = request.form.get("Body", "")
+    slug = os.environ.get("SMS_TENANT_SLUG", "in-out-insulation-and-spray-foam-of-broward-llc")
+    row = query_one("SELECT id FROM tenants WHERE slug = ?", (slug,))
+    try:
+        execute("INSERT INTO messages (tenant_id, direction, phone, body) VALUES (?, ?, ?, ?)",
+                ((row or {}).get("id"), "in", frm, body))
+    except Exception:
+        pass
+    return app.response_class("<Response></Response>", mimetype="text/xml")
 
 
 @app.route("/team")

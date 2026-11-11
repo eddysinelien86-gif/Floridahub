@@ -136,6 +136,36 @@
   {% if stats.email_leads == 0 %}<p class="muted" style="font-size:13px;margin-top:8px;">No leads have an email yet (phone leads show a Call button below).</p>{% endif %}
 </div>
 
+<!-- text your leads -->
+<div class="card">
+  <h2>💬 Text your leads</h2>
+  {% if sms_enabled %}
+  <p class="muted">Send a text to <b>all {{ stats.phone_leads }}</b> lead{{ '' if stats.phone_leads == 1 else 's' }} with a phone number. Replies show up below.</p>
+  {% if texted is not none %}<div class="out" style="border-color:rgba(52,211,153,.4);">✅ Texted {{ texted }} lead(s).</div>{% endif %}
+  <form method="post" action="/leads/sms">
+    <textarea name="message" id="smsBody" placeholder="Hi! It's {{ user['tname'] }} — ready to book your free quote? Reply here."></textarea>
+    <div class="btnrow">
+      <button type="button" class="btn ghost" onclick="draftSms()">✨ AI draft</button>
+      <button type="submit">Send text to all →</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="muted">Texting isn't connected yet. Add your Twilio keys to turn on sending &amp; replying to texts.</p>
+  {% endif %}
+
+  {% if messages %}
+  <h3 style="margin-top:18px;">Recent texts</h3>
+  <div class="texts">
+    {% for m in messages %}
+    <div class="bubble {{ 'out' if m['direction'] == 'out' else 'in' }}">
+      <div class="bmeta">{{ '➡️ You' if m['direction'] == 'out' else '⬅️ ' + (m['phone'] or 'Lead') }} · {{ (m['created_at']|string)[:16] }}</div>
+      {{ m['body'] }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
 <!-- leads table -->
 <div class="card">
   <h2>📥 Recent leads</h2>
@@ -169,6 +199,11 @@
   .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
   .witem{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000;}
   .witem img,.witem video{width:100%;height:120px;object-fit:cover;display:block;}
+  .texts{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+  .bubble{max-width:80%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.4;}
+  .bubble .bmeta{font-size:11px;color:var(--soft);margin-bottom:3px;}
+  .bubble.in{align-self:flex-start;background:var(--ink);border:1px solid var(--line);}
+  .bubble.out{align-self:flex-end;background:rgba(91,140,255,.16);border:1px solid rgba(91,140,255,.3);}
 </style>
 <script>
   async function gen(mode){
@@ -188,6 +223,13 @@
       const d=await r.json();body.value=(d.text||'').trim();
       if(!subj.value)subj.value='Ready for your free quote?';}
     catch(e){body.value='';}
+  }
+  async function draftSms(){
+    const b=document.getElementById('smsBody');b.value='Drafting…';
+    try{const r=await fetch('/ai/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:'Write one short, friendly SMS text (under 160 characters) inviting a homeowner lead to book their free insulation quote. No links, casual.'})});
+      const d=await r.json();b.value=(d.text||'').trim();}
+    catch(e){b.value='';}
   }
 </script>
 {% endblock %}
