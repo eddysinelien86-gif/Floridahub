@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 
 from flask import Flask, abort, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ai_helper import generate as ai_generate
 from db import execute, init_schema, query, query_one
+from notify import send_lead_alert
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SAAS_SECRET", "dev-secret-change-me-in-production")
@@ -254,11 +256,21 @@ def submit_lead(slug):
     t = query_one("SELECT * FROM tenants WHERE slug = ?", (slug,))
     if not t:
         abort(404)
+    name = request.form.get("name", "").strip()
+    contact = request.form.get("contact", "").strip()
+    service = request.form.get("service", "").strip()
     execute(
         "INSERT INTO leads (tenant_id, name, contact, service) VALUES (?, ?, ?, ?)",
-        (t["id"], request.form.get("name", "").strip(),
-         request.form.get("contact", "").strip(), request.form.get("service", "").strip()),
+        (t["id"], name, contact, service),
     )
+    # Email every owner of this company, in the background so the thank-you
+    # page returns instantly even if the mail server is slow.
+    for owner in query("SELECT email FROM users WHERE tenant_id = ?", (t["id"],)):
+        threading.Thread(
+            target=send_lead_alert,
+            args=(owner["email"], t["name"], name, contact, service),
+            daemon=True,
+        ).start()
     return render_template("lead_thanks.html", tenant=t)
 
 

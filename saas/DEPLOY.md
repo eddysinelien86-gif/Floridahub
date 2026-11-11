@@ -67,6 +67,20 @@ LeadPilot has Stripe subscriptions built in. Turn them on when you're ready:
    into Render as `STRIPE_WEBHOOK_SECRET`. This keeps plans in sync if someone
    cancels.
 
+## Instant lead alerts (email)
+When a lead comes in, the company owner gets an email right away. One Gmail
+account sends all alerts; each one goes to that company's signup email.
+1. Use a Gmail account for sending (your business Gmail is fine).
+2. Turn on **2-Step Verification** on that Google account, then create an
+   **App Password**: Google Account → Security → 2-Step Verification → App
+   passwords → generate one for "Mail". You get a 16-character code.
+3. In Render → **Environment**, add:
+   - `SMTP_USER` = that Gmail address (e.g. `yourbiz@gmail.com`)
+   - `SMTP_PASS` = the 16-character App Password (NOT your normal password)
+4. Save → redeploy. New leads now email the company owner automatically.
+
+If these aren't set, leads still save to the dashboard — they just don't email.
+
 **Test card** (Test mode only): `4242 4242 4242 4242`, any future date, any CVC.
 When you're ready for real payments, switch Stripe out of Test mode and swap in
 your live `sk_live_...` key and live Price ID.
