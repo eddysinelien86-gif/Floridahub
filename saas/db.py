@@ -105,6 +105,9 @@ def init_schema() -> None:
         f"""CREATE TABLE IF NOT EXISTS messages (
             id {pk}, tenant_id INTEGER, direction TEXT, phone TEXT, body TEXT,
             created_at {ts})""",
+        f"""CREATE TABLE IF NOT EXISTS prospects (
+            id {pk}, tenant_id INTEGER NOT NULL, title TEXT, org TEXT, location TEXT,
+            due TEXT, score INTEGER DEFAULT 50, url TEXT, created_at {ts})""",
     ]
     conn = _conn()
     try:

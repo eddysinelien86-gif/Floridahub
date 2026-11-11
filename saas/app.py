@@ -209,6 +209,76 @@ def ask_send():
     return ai_helper.ask(q, ctx, u["tname"])
 
 
+@app.route("/agents")
+def agents_hub():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    tid = u["tenant_id"]
+    import sms as _sms
+    prospects = query("SELECT * FROM prospects WHERE tenant_id = ? ORDER BY score DESC, id DESC", (tid,))[:20]
+    status = {
+        "social": bool(os.environ.get("META_PAGE_ACCESS_TOKEN", "").strip()),
+        "sms": _sms.is_configured(),
+        "email": bool(os.environ.get("SMTP_USER", "").strip() and os.environ.get("SMTP_PASS", "").strip()),
+        "ai": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
+    }
+    trow = query_one("SELECT city FROM tenants WHERE id = ?", (tid,))
+    return render_template("agents.html", user=u, prospects=prospects, status=status,
+                           searching=request.args.get("searching"),
+                           t_city=(trow or {}).get("city"))
+
+
+@app.route("/agents/find", methods=["POST"])
+def agents_find():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    area = request.form.get("area", "").strip() or "Broward County, FL"
+    tid, brand = u["tenant_id"], u["tname"]
+
+    def _work():
+        import agents as ag
+        res = ag.find_opportunities(area, brand)
+        for it in res.get("items", []):
+            try:
+                execute("INSERT INTO prospects (tenant_id, title, org, location, due, score, url) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (tid, it["title"], it["org"], it["location"], it["due"], it["score"], it["url"]))
+            except Exception:
+                pass
+
+    threading.Thread(target=_work, daemon=True).start()
+    return redirect(url_for("agents_hub", searching=1))
+
+
+@app.route("/agents/coach", methods=["POST"])
+def agents_coach():
+    u = current_user()
+    if not u:
+        return {"error": "auth"}, 401
+    tid = u["tenant_id"]
+    lc = query_one("SELECT COUNT(*) AS c FROM leads WHERE tenant_id = ?", (tid,))["c"]
+    rc, rating = _company_stats(tid)
+    views = query_one("SELECT COUNT(*) AS c FROM page_views WHERE tenant_id = ?", (tid,))["c"]
+    socials = query_one("SELECT COUNT(*) AS c FROM social_log WHERE tenant_id = ?", (tid,))["c"]
+    pcount = query_one("SELECT COUNT(*) AS c FROM posts WHERE tenant_id = ?", (tid,))["c"]
+    ctx = (f"Leads: {lc}. Page views: {views}. Reviews: {rc} (avg {rating} stars). "
+           f"Automatic social posts: {socials}. Work photos posted: {pcount}.")
+    import agents as ag
+    return ag.coach(ctx, u["tname"])
+
+
+@app.route("/prospects/delete", methods=["POST"])
+def prospects_delete():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    execute("DELETE FROM prospects WHERE id = ? AND tenant_id = ?",
+            (request.form.get("pid", ""), u["tenant_id"]))
+    return redirect(url_for("agents_hub"))
+
+
 @app.route("/join", methods=["GET", "POST"])
 def join():
     if request.method == "POST":

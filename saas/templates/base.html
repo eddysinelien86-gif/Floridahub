@@ -139,7 +139,7 @@
     <div class="nav" id="nav">
       <a href="/directory">Directory</a>
       {% if user %}
-        <a href="/dashboard">Dashboard</a><a href="/profile">Profile</a><a href="/team">Team</a><a href="/logout">Log out</a>
+        <a href="/dashboard">Dashboard</a><a href="/agents">Agents</a><a href="/ask">Ask</a><a href="/profile">Profile</a><a href="/team">Team</a><a href="/logout">Log out</a>
       {% elif homeowner %}
         <a href="/favorites">Saved</a><a href="/leave">Sign out</a>
       {% else %}
@@ -153,7 +153,7 @@
   <nav class="tabbar">
     {% if user %}
       <a href="/dashboard"><span class="ic">🏠</span>Home</a>
-      <a href="/directory"><span class="ic">🧭</span>Browse</a>
+      <a href="/agents"><span class="ic">🤖</span>Agents</a>
       <a href="/ask"><span class="ic">💬</span>Ask</a>
       <a href="/profile"><span class="ic">📸</span>Work</a>
       <button onclick="document.getElementById('nav').classList.toggle('open')"><span class="ic">☰</span>More</button>
