@@ -77,6 +77,7 @@ def init_schema() -> None:
         f"""CREATE TABLE IF NOT EXISTS tenants (
             id {pk}, slug TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
             tagline TEXT DEFAULT 'Free quote — tell us about your project',
+            plan TEXT DEFAULT 'trial', stripe_customer_id TEXT,
             created_at {ts})""",
         f"""CREATE TABLE IF NOT EXISTS users (
             id {pk}, tenant_id INTEGER NOT NULL, email TEXT UNIQUE NOT NULL,
@@ -93,3 +94,19 @@ def init_schema() -> None:
         conn.commit()
     finally:
         conn.close()
+    # Best-effort migrations for databases created before these columns existed.
+    # Each runs in its own connection so a failure (column already there) never
+    # poisons the rest — important on Postgres, where a bad statement aborts the tx.
+    migrations = [
+        "ALTER TABLE tenants ADD COLUMN plan TEXT DEFAULT 'trial'",
+        "ALTER TABLE tenants ADD COLUMN stripe_customer_id TEXT",
+    ]
+    for m in migrations:
+        c = _conn()
+        try:
+            (c.cursor() if USE_PG else c).execute(m)
+            c.commit()
+        except Exception:
+            pass
+        finally:
+            c.close()

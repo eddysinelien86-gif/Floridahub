@@ -11,6 +11,20 @@
 </div>
 
 <div class="card" style="margin-bottom:18px;">
+  <h2>Your plan</h2>
+  {% if user['plan'] == 'pro' %}
+    <p>✅ You're on <b>Pro</b>. Everything's unlocked — thanks for your support!</p>
+  {% else %}
+    <p class="muted">You're on the free trial. Upgrade to Pro ({{ price_label }}) to keep your form,
+      AI assistant, and leads running with no limits.</p>
+    <form method="post" action="/subscribe"><button>Upgrade to Pro — {{ price_label }} →</button></form>
+    {% if not billing_on %}
+    <p class="muted" style="font-size:13px; margin-top:8px;">Payments turn on once Stripe keys are added.</p>
+    {% endif %}
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:18px;">
   <h2>Share your lead form</h2>
   <p class="muted">Put this link or QR on flyers, your truck, Facebook, your website. Every submission shows up below.</p>
   <div class="row">
@@ -64,7 +78,7 @@
       <td>{{ l['contact'] or '—' }}</td>
       <td>{{ l['service'] or '—' }}</td>
       <td><span class="tag">{{ l['status'] }}</span></td>
-      <td class="muted">{{ l['created_at'][:16] }}</td>
+      <td class="muted">{{ (l['created_at']|string)[:16] }}</td>
     </tr>
     {% endfor %}
   </table>

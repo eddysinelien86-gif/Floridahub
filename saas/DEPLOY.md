@@ -17,6 +17,9 @@ This puts the multi-tenant app online at a real URL so companies can sign up
 5. Under **Environment**, add:
    - `SAAS_SECRET` = any long random string (used to sign logins)
    - *(optional)* `ANTHROPIC_API_KEY` = your Claude key, for real AI content
+   - *(recommended)* `DATABASE_URL` = your Neon Postgres connection string (so
+     data survives redeploys — see **Persistent database** below)
+   - *(for paid plans)* `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID` — see **Billing**
 6. Click **Create Web Service**. Render builds and deploys — in ~2 minutes you
    get a live URL like `https://markethub-saas.onrender.com`.
 
@@ -32,3 +35,41 @@ Each company that signs up gets `https://your-app.onrender.com/t/their-name`.
   Neon or Render). That's the recommended next step.
 - You can later point a custom domain (e.g. `app.yourbrand.com`) at the Render
   service in its Settings.
+
+## Persistent database (free Neon Postgres)
+Without this, the free SQLite file resets on every redeploy. Fix it once:
+1. Go to **https://neon.tech** → sign up (free) → **Create project**.
+2. Copy the **connection string** (starts with `postgresql://...`). Use the
+   **pooled** one if offered.
+3. In Render → your service → **Environment** → add `DATABASE_URL` = that string.
+4. **Save** → Render redeploys. The app auto-creates its tables in Postgres on
+   startup. From now on, signups and leads persist across restarts. ✅
+
+## Billing — charge contractors monthly (Stripe)
+LeadPilot has Stripe subscriptions built in. Turn them on when you're ready:
+1. Go to **https://stripe.com** → create a free account. Stay in **Test mode**
+   (toggle, top right) until you're ready to take real money.
+2. **Product catalog → Add product**: name it e.g. "LeadPilot Pro", set a
+   **recurring** price (e.g. $49 / month). Save, then copy the **Price ID**
+   (looks like `price_1A2b...`).
+3. **Developers → API keys**: copy your **Secret key** (`sk_test_...`).
+4. In Render → **Environment**, add:
+   - `STRIPE_SECRET_KEY` = `sk_test_...`
+   - `STRIPE_PRICE_ID` = `price_...`
+   - *(optional)* `PLAN_PRICE_LABEL` = `$49/mo` (what the button shows)
+   - *(optional)* `APP_URL` = your live URL, e.g. `https://your-app.onrender.com`
+5. Save → redeploy. The **Upgrade to Pro** button on each company's dashboard now
+   opens Stripe Checkout; after they pay, they come back marked **Pro**.
+6. *(optional, for reliability)* **Developers → Webhooks → Add endpoint**:
+   URL `https://your-app.onrender.com/webhook`, events
+   `checkout.session.completed`, `customer.subscription.updated`,
+   `customer.subscription.deleted`. Copy the **Signing secret** (`whsec_...`)
+   into Render as `STRIPE_WEBHOOK_SECRET`. This keeps plans in sync if someone
+   cancels.
+
+**Test card** (Test mode only): `4242 4242 4242 4242`, any future date, any CVC.
+When you're ready for real payments, switch Stripe out of Test mode and swap in
+your live `sk_live_...` key and live Price ID.
+
+> 🔒 Never put these keys in the code or commit them — they only go in Render's
+> Environment settings (or a local `secrets.env`, which is gitignored).
