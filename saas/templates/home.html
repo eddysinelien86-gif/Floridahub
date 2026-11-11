@@ -1,19 +1,26 @@
 {% extends "base.html" %}
-{% block title %}LeadPilot — lead-gen for contractors{% endblock %}
+{% block title %}AI LeadPilot — find pros, show your work, win jobs{% endblock %}
 {% block content %}
 <div class="hero">
-  <h1>Turn clicks into booked jobs.</h1>
-  <p class="muted" style="font-size:18px; max-width:560px; margin:10px auto 24px;">
-    A branded lead form, a live dashboard, and AI content for your home-services business —
-    set up in minutes, no agency required.
+  <h1>Where home-service pros get found.</h1>
+  <p class="muted" style="font-size:18px; max-width:600px; margin:10px auto 24px;">
+    AI LeadPilot is the social directory for contractors — show off your work with photos
+    &amp; video, collect reviews, and turn homeowners into booked jobs. For homeowners,
+    it's the easiest way to find a trusted local pro.
   </p>
-  <a class="btn" href="/signup">Start free →</a>
-  <a class="btn ghost" href="/login" style="margin-left:10px;">Log in</a>
+  <a class="btn" href="/signup">List your business — free →</a>
+  <a class="btn ghost" href="/directory" style="margin-left:10px;">Browse pros</a>
 </div>
 
 <div class="grid" style="margin-top:34px;">
-  <div class="stat"><div class="v">📝</div><div class="k">Your own lead form — share the link or QR anywhere</div></div>
-  <div class="stat"><div class="v">📊</div><div class="k">Live dashboard of every lead that comes in</div></div>
-  <div class="stat"><div class="v">🔒</div><div class="k">Private account — your data stays yours</div></div>
+  <div class="stat"><div class="v">📸</div><div class="k">Post photos &amp; video of your work — like social media for your business</div></div>
+  <div class="stat"><div class="v">⭐</div><div class="k">Collect reviews &amp; ratings that win trust</div></div>
+  <div class="stat"><div class="v">📥</div><div class="k">Get quote requests straight to your dashboard</div></div>
+</div>
+
+<div class="hero" style="padding:40px 0 10px;">
+  <h2>For homeowners</h2>
+  <p class="muted" style="max-width:520px;margin:6px auto 18px;">Browse local pros, see real work, read reviews, and request a free quote in seconds.</p>
+  <a class="btn ghost" href="/directory">Find a pro near you →</a>
 </div>
 {% endblock %}
