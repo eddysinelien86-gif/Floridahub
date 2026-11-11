@@ -31,7 +31,9 @@ import urllib.request
 
 DEFAULT_LEAD = ("https://elio-insulation-hub.onrender.com/t/"
                 "in-out-insulation-and-spray-foam-of-broward-llc")
-DEFAULT_IMAGE = "https://elio-insulation-hub.onrender.com/static/flyer.png"
+# Instagram requires a JPEG with aspect ratio between 4:5 and 1.91:1, so we use
+# a square JPEG (works for Facebook too). The tall PNG flyer is print-only.
+DEFAULT_IMAGE = "https://elio-insulation-hub.onrender.com/static/social.jpg"
 
 SERVICES = [
     ("attic insulation", "beat the Florida heat and lower your cooling bills"),
