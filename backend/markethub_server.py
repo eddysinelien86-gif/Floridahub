@@ -12,6 +12,7 @@ import time
 
 from agents import run_content_agent, run_reply_agent
 from ai import generate as ai_generate
+from notify import send_lead_alert
 from database import (
     add_lead,
     delete_draft,
@@ -189,12 +190,14 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/lead":
-            # Lead-Capture Agent: a new inbound lead bumps hot leads.
-            hot = add_lead(
-                str(data.get("name", "")).strip(),
-                str(data.get("contact", "")).strip(),
-                str(data.get("service", "")).strip(),
-            )
+            # Lead-Capture Agent: a new inbound lead bumps hot leads + emails you.
+            name = str(data.get("name", "")).strip()
+            contact = str(data.get("contact", "")).strip()
+            service = str(data.get("service", "")).strip()
+            hot = add_lead(name, contact, service)
+            threading.Thread(
+                target=send_lead_alert, args=(name, contact, service), daemon=True
+            ).start()
             self._send_json({"ok": True, "hot_leads": hot})
             return
 
