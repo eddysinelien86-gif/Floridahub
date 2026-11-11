@@ -54,10 +54,13 @@
   <div class="topbar">
     <div class="brand"><img class="logo" src="/static/logo.png" alt="AI LeadPilot logo" /> AI LeadPilot</div>
     <div class="nav">
+      <a href="/directory">Directory</a>
       {% if user %}
-        <a href="/directory">Directory</a><a href="/dashboard">Dashboard</a><a href="/profile">Profile</a><a href="/team">Team</a><a href="/logout">Log out</a>
+        <a href="/dashboard">Dashboard</a><a href="/profile">Profile</a><a href="/team">Team</a><a href="/logout">Log out</a>
+      {% elif homeowner %}
+        <a href="/favorites">Saved</a><a href="/leave">Sign out</a>
       {% else %}
-        <a href="/directory">Directory</a><a href="/login">Log in</a><a href="/signup">Sign up</a>
+        <a href="/favorites">Saved</a><a href="/login">For Pros</a><a href="/join">Join</a>
       {% endif %}
     </div>
   </div>

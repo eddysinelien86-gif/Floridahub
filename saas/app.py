@@ -96,9 +96,91 @@ def current_user():
     )
 
 
+def current_homeowner():
+    hid = session.get("hid")
+    if not hid:
+        return None
+    return query_one("SELECT id, name, email FROM homeowners WHERE id = ?", (hid,))
+
+
+@app.context_processor
+def _inject_homeowner():
+    return {"homeowner": current_homeowner()}
+
+
 @app.route("/")
 def home():
     return render_template("home.html", user=current_user())
+
+
+@app.route("/join", methods=["GET", "POST"])
+def join():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        pw = request.form.get("password", "")
+        if not (email and pw):
+            return render_template("join.html", error="Fill in every field.")
+        if len(pw) < 6:
+            return render_template("join.html", error="Password must be at least 6 characters.")
+        if query_one("SELECT 1 AS x FROM homeowners WHERE email = ?", (email,)):
+            return render_template("join.html", error="That email is already registered.")
+        hid = execute("INSERT INTO homeowners (name, email, password_hash) VALUES (?, ?, ?)",
+                      (name, email, generate_password_hash(pw)), returning=True)
+        session["hid"] = hid
+        return redirect(request.args.get("next") or url_for("directory"))
+    return render_template("join.html", error=None)
+
+
+@app.route("/enter", methods=["GET", "POST"])
+def enter():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        pw = request.form.get("password", "")
+        h = query_one("SELECT * FROM homeowners WHERE email = ?", (email,))
+        if h and check_password_hash(h["password_hash"], pw):
+            session["hid"] = h["id"]
+            return redirect(request.args.get("next") or url_for("directory"))
+        return render_template("enter.html", error="Wrong email or password.")
+    return render_template("enter.html", error=None)
+
+
+@app.route("/leave")
+def leave():
+    session.pop("hid", None)
+    return redirect(url_for("directory"))
+
+
+@app.route("/favorites")
+def favorites():
+    h = current_homeowner()
+    if not h:
+        return redirect(url_for("enter", next=url_for("favorites")))
+    rows = query(
+        "SELECT t.* FROM favorites f JOIN tenants t ON t.id = f.tenant_id "
+        "WHERE f.homeowner_id = ? ORDER BY f.id DESC",
+        (h["id"],),
+    )
+    for t in rows:
+        t["review_count"], t["rating"] = _company_stats(t["id"])
+    return render_template("favorites.html", companies=rows)
+
+
+@app.route("/c/<slug>/favorite", methods=["POST"])
+def toggle_favorite(slug):
+    h = current_homeowner()
+    t = query_one("SELECT id FROM tenants WHERE slug = ?", (slug,))
+    if not t:
+        abort(404)
+    if not h:
+        return redirect(url_for("enter", next=url_for("company", slug=slug)))
+    existing = query_one("SELECT id FROM favorites WHERE homeowner_id = ? AND tenant_id = ?",
+                         (h["id"], t["id"]))
+    if existing:
+        execute("DELETE FROM favorites WHERE id = ?", (existing["id"],))
+    else:
+        execute("INSERT INTO favorites (homeowner_id, tenant_id) VALUES (?, ?)", (h["id"], t["id"]))
+    return redirect(url_for("company", slug=slug))
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -378,8 +460,11 @@ def company(slug):
     count, avg = _company_stats(t["id"])
     posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
     reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
+    h = current_homeowner()
+    is_fav = bool(h and query_one(
+        "SELECT 1 AS x FROM favorites WHERE homeowner_id = ? AND tenant_id = ?", (h["id"], t["id"])))
     return render_template("company.html", t=t, posts=posts, reviews=reviews,
-                           review_count=count, rating=avg, user=current_user())
+                           review_count=count, rating=avg, user=current_user(), is_fav=is_fav)
 
 
 @app.route("/c/<slug>/review", methods=["POST"])

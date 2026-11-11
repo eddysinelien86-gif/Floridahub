@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Join — AI LeadPilot{% endblock %}
+{% block content %}
+<div class="card center">
+  <h1>Create your account</h1>
+  <p class="muted">Save your favorite pros and track your quotes.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label>Name</label>
+    <input name="name" placeholder="Your name">
+    <label>Email</label>
+    <input type="email" name="email" required>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button type="submit" class="full">Join free</button>
+  </form>
+  <p class="muted" style="margin-top:14px;">Already have an account? <a href="/enter">Sign in</a></p>
+  <p class="muted" style="font-size:13px;">Are you a contractor? <a href="/signup">List your business →</a></p>
+</div>
+{% endblock %}

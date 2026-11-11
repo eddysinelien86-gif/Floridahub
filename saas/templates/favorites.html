@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Saved Pros — AI LeadPilot{% endblock %}
+{% block content %}
+<h1>Your Saved Pros</h1>
+<p class="muted">The companies you've saved. Request a quote anytime.</p>
+
+{% if companies %}
+<div class="dgrid">
+  {% for t in companies %}
+  <a class="ccard" href="/c/{{ t['slug'] }}">
+    <div class="cbody">
+      <div class="cname">{{ t['name'] }}</div>
+      <div class="muted" style="font-size:13px;">{{ t['city'] or 'Local area' }}</div>
+      <div class="stars">
+        {% for i in range(5) %}<span class="{{ 'on' if i < t['rating']|round(0,'floor')|int else 'off' }}">★</span>{% endfor %}
+        <span class="muted" style="font-size:12px;">{{ t['rating'] }} ({{ t['review_count'] }})</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card center">
+  <p class="muted">You haven't saved any pros yet.</p>
+  <a class="btn" href="/directory">Browse the directory →</a>
+</div>
+{% endif %}
+
+<style>
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-top:18px;}
+  .ccard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;color:var(--text);}
+  .ccard:hover{border-color:var(--accent);}
+  .cbody{padding:16px 18px;} .cname{font-weight:800;font-size:17px;}
+  .stars{margin-top:6px;display:flex;align-items:center;gap:2px;} .stars .on{color:#fbbf24;} .stars .off{color:#38445c;}
+</style>
+{% endblock %}

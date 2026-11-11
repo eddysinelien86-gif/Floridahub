@@ -16,7 +16,12 @@
       </div>
       <div class="muted">📍 {{ t['city'] or 'Local area' }}{% if t['phone'] %} · 📞 {{ t['phone'] }}{% endif %}</div>
     </div>
-    <a class="btn" href="/t/{{ t['slug'] }}">Request a Free Quote →</a>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <a class="btn" href="/t/{{ t['slug'] }}">Request a Free Quote →</a>
+      <form method="post" action="/c/{{ t['slug'] }}/favorite" style="margin:0;">
+        <button class="btn ghost" style="width:100%;margin:0;">{{ '❤ Saved' if is_fav else '🤍 Save' }}</button>
+      </form>
+    </div>
   </div>
   {% if t['bio'] %}<p style="margin:16px 0 0;">{{ t['bio'] }}</p>{% endif %}
   {% if t['services'] %}
