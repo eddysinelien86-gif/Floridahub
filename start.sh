@@ -36,10 +36,18 @@ curl -s -o /dev/null -w "localhost:8000 -> %{http_code} (401 = password-locked, 
 
 # Start the public tunnel if cloudflared is installed
 if command -v cloudflared >/dev/null 2>&1; then
-  nohup cloudflared tunnel --url http://localhost:8000 > "$HOME/tunnel.log" 2>&1 &
-  sleep 10
-  echo "=== Public URL (share this + /lead) ==="
-  grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$HOME/tunnel.log" | tail -1
+  if [ -f "$HOME/.cloudflared/config.yml" ]; then
+    # Permanent named tunnel (your own domain)
+    nohup cloudflared tunnel run > "$HOME/tunnel.log" 2>&1 &
+    echo "=== Permanent tunnel started ==="
+    [ -n "$MARKETHUB_PUBLIC_URL" ] && echo "Public form: ${MARKETHUB_PUBLIC_URL%/}/lead"
+  else
+    # Fallback: free random quick tunnel
+    nohup cloudflared tunnel --url http://localhost:8000 > "$HOME/tunnel.log" 2>&1 &
+    sleep 10
+    echo "=== Public URL (share this + /lead) ==="
+    grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$HOME/tunnel.log" | tail -1
+  fi
 else
   echo "(cloudflared not installed — public tunnel skipped)"
 fi

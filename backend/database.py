@@ -220,6 +220,7 @@ def fetch_dashboard_payload() -> dict[str, Any]:
             "wifi_password": profile["wifi_password"],
         },
         "leadboard": {"hot_leads": profile["hot_leads"], "drafts": draft_count},
+        "public_url": os.environ.get("MARKETHUB_PUBLIC_URL", ""),
         "metrics": metric_list,
         "drafts": drafts,
         "reviews": [

@@ -290,6 +290,11 @@
           $('companyTagline').textContent = d.profile?.tagline || '';
           $('setName').textContent = d.profile?.name || '—';
           $('setWifi').textContent = d.profile?.wifi_ssid || '—';
+          // Auto-fill the permanent public URL so the QR points to it.
+          if (d.public_url && $('publicUrl') && !$('publicUrl').value) {
+            $('publicUrl').value = d.public_url;
+            makeQR();
+          }
 
           const m = d.metrics || [];
           const social = m.filter(x => x.category === 'social');
