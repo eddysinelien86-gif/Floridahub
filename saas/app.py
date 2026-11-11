@@ -281,8 +281,14 @@ def social_post_task():
     secret = os.environ.get("CRON_SECRET", "").strip()
     if not secret or request.args.get("key", "") != secret:
         abort(403)
+    import traceback
+
     import social_bot
-    return app.response_class("\n".join(social_bot.run()), mimetype="text/plain")
+    try:
+        return app.response_class("\n".join(social_bot.run()), mimetype="text/plain")
+    except Exception:
+        return app.response_class("BOT ERROR:\n" + traceback.format_exc(),
+                                  mimetype="text/plain", status=200)
 
 
 # Create tables on import so it works under gunicorn (production) too.
