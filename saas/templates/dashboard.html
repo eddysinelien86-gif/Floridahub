@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ user['tname'] }} — Dashboard{% endblock %}
+{% block content %}
+<h1>{{ user['tname'] }}</h1>
+<p class="muted">Your lead dashboard</p>
+
+<div class="grid">
+  <div class="stat"><div class="v">{{ leads|length }}</div><div class="k">Total leads</div></div>
+  <div class="stat"><div class="v">{{ leads|selectattr('status','equalto','New')|list|length }}</div><div class="k">New</div></div>
+  <div class="stat"><div class="v">🔗</div><div class="k">Your public form</div></div>
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h2>Share your lead form</h2>
+  <p class="muted">Put this link (or a QR of it) on flyers, your truck, Facebook, your website. Every submission shows up below.</p>
+  <div class="urlbox">{{ form_url }}</div>
+  <a class="btn ghost" href="{{ form_url }}" target="_blank" style="margin-top:12px;">Open my form ↗</a>
+</div>
+
+<div class="card">
+  <h2>Leads</h2>
+  {% if leads %}
+  <table>
+    <tr><th>Name</th><th>Contact</th><th>Service</th><th>Status</th><th>When</th></tr>
+    {% for l in leads %}
+    <tr>
+      <td>{{ l['name'] or '—' }}</td>
+      <td>{{ l['contact'] or '—' }}</td>
+      <td>{{ l['service'] or '—' }}</td>
+      <td><span class="tag">{{ l['status'] }}</span></td>
+      <td class="muted">{{ l['created_at'][:16] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No leads yet. Share your form link above — new leads will appear here automatically.</p>
+  {% endif %}
+</div>
+{% endblock %}

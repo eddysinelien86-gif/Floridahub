@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Sign up — MarketHub{% endblock %}
+{% block content %}
+<div class="card center">
+  <h1>Create your account</h1>
+  <p class="muted">Free to start. Your own dashboard + lead form in under a minute.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label>Business name</label>
+    <input name="company" placeholder="Florida Insulation Leads" required />
+    <label>Email</label>
+    <input name="email" type="email" placeholder="you@business.com" required />
+    <label>Password</label>
+    <input name="password" type="password" placeholder="at least 6 characters" required />
+    <button class="full" type="submit">Create account →</button>
+  </form>
+  <p class="muted" style="margin-top:16px;">Already have an account? <a href="/login">Log in</a></p>
+</div>
+{% endblock %}

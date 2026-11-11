@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ tenant['name'] }} — Free Quote{% endblock %}
+{% block content %}
+<div class="card center">
+  <h1>{{ tenant['name'] }}</h1>
+  <p class="muted">{{ tenant['tagline'] }}</p>
+  <form method="post" action="/t/{{ tenant['slug'] }}/lead">
+    <label>Your name</label>
+    <input name="name" placeholder="Jane Smith" />
+    <label>Phone or email</label>
+    <input name="contact" placeholder="(555) 123-4567" required />
+    <label>What do you need?</label>
+    <select name="service">
+      {% for s in services %}<option>{{ s }}</option>{% endfor %}
+    </select>
+    <button class="full" type="submit">Get my free quote →</button>
+  </form>
+</div>
+{% endblock %}

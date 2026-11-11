@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Log in — MarketHub{% endblock %}
+{% block content %}
+<div class="card center">
+  <h1>Welcome back</h1>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label>Email</label>
+    <input name="email" type="email" placeholder="you@business.com" required />
+    <label>Password</label>
+    <input name="password" type="password" required />
+    <button class="full" type="submit">Log in →</button>
+  </form>
+  <p class="muted" style="margin-top:16px;">New here? <a href="/signup">Create an account</a></p>
+</div>
+{% endblock %}

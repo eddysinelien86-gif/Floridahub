@@ -7,3 +7,6 @@ backend/markethub.db
 
 # Local secrets (never commit)
 backend/secrets.env
+
+# SaaS local db
+saas/saas.db
