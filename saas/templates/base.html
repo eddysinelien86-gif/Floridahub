@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}LeadPilot{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/static/favicon-32.png" />
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
+  <meta name="theme-color" content="#4f46e5" />
   <style>
     :root { --bg:#060d1a; --panel:#0e1a2e; --panel2:#14263f; --line:rgba(96,165,250,.22);
             --accent:#3b82f6; --accent2:#8b5cf6; --text:#eaf3ff; --muted:#8ba3c7; --good:#34d399; }
@@ -13,7 +16,7 @@
     a { color:var(--accent); text-decoration:none; }
     .topbar { display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--line); }
     .brand { display:flex; align-items:center; gap:10px; font-weight:800; }
-    .logo { width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:grid; place-items:center; font-weight:900; }
+    .logo { width:40px; height:40px; border-radius:12px; display:block; object-fit:cover; box-shadow:0 4px 12px rgba(2,6,23,.4); }
     .nav a { margin-left:16px; color:var(--muted); font-weight:600; }
     .nav a:hover { color:var(--text); }
     .wrap { max-width:1000px; margin:0 auto; padding:28px 20px; }
@@ -49,7 +52,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="brand"><div class="logo">LP</div> LeadPilot</div>
+    <div class="brand"><img class="logo" src="/static/logo.png" alt="LeadPilot logo" /> LeadPilot</div>
     <div class="nav">
       {% if user %}
         <a href="/dashboard">Dashboard</a><a href="/logout">Log out</a>
