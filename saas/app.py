@@ -21,6 +21,8 @@ from flask import (
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from ai_helper import generate as ai_generate
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SAAS_SECRET", "dev-secret-change-me-in-production")
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saas.db")
@@ -165,6 +167,36 @@ def dashboard():
     conn.close()
     form_url = request.host_url.rstrip("/") + url_for("public_form", slug=u["tslug"])
     return render_template("dashboard.html", user=u, leads=leads, form_url=form_url)
+
+
+@app.route("/ai/generate", methods=["POST"])
+def ai_generate_route():
+    u = current_user()
+    if not u:
+        return {"error": "auth"}, 401
+    data = request.get_json(force=True, silent=True) or {}
+    return ai_generate(data.get("prompt", ""), u["tname"])
+
+
+@app.route("/qr")
+def qr():
+    import qrcode
+
+    data = request.args.get("data", "/")
+    code = qrcode.QRCode(border=2)
+    code.add_data(data)
+    code.make(fit=True)
+    matrix = code.get_matrix()
+    n, scale = len(matrix), 8
+    rects = "".join(
+        f'<rect x="{x*scale}" y="{y*scale}" width="{scale}" height="{scale}"/>'
+        for y, row in enumerate(matrix) for x, v in enumerate(row) if v
+    )
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{n*scale}" height="{n*scale}">'
+        f'<rect width="100%" height="100%" fill="#fff"/><g fill="#000">{rects}</g></svg>'
+    )
+    return app.response_class(svg, mimetype="image/svg+xml")
 
 
 @app.route("/t/<slug>")

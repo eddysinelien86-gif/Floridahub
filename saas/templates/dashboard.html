@@ -12,10 +12,46 @@
 
 <div class="card" style="margin-bottom:18px;">
   <h2>Share your lead form</h2>
-  <p class="muted">Put this link (or a QR of it) on flyers, your truck, Facebook, your website. Every submission shows up below.</p>
-  <div class="urlbox">{{ form_url }}</div>
-  <a class="btn ghost" href="{{ form_url }}" target="_blank" style="margin-top:12px;">Open my form ↗</a>
+  <p class="muted">Put this link or QR on flyers, your truck, Facebook, your website. Every submission shows up below.</p>
+  <div class="row">
+    <div style="flex:1; min-width:240px;">
+      <div class="urlbox">{{ form_url }}</div>
+      <a class="btn ghost" href="{{ form_url }}" target="_blank" style="margin-top:12px;">Open my form ↗</a>
+    </div>
+    <img class="qr" src="/qr?data={{ form_url|urlencode }}" alt="QR code to your lead form" />
+  </div>
 </div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h2>🤖 AI Assistant</h2>
+  <p class="muted">Write posts, hashtags, and review replies in {{ user['tname'] }}'s voice.</p>
+  <textarea id="aiPrompt" placeholder="e.g. free attic inspection special this week"></textarea>
+  <div class="btnrow">
+    <button onclick="gen('caption')">Caption</button>
+    <button onclick="gen('hashtags')">Hashtags</button>
+    <button onclick="gen('review reply')">Review reply</button>
+    <button onclick="gen('idea')">Idea</button>
+  </div>
+  <div id="aiOut" class="out">Your content will appear here.</div>
+  <button class="btn ghost" onclick="copyAI()" style="margin-top:10px;">📋 Copy</button>
+</div>
+<script>
+  async function gen(mode) {
+    const t = document.getElementById('aiPrompt').value.trim();
+    const out = document.getElementById('aiOut');
+    out.textContent = 'Thinking…';
+    const prompt = mode === 'idea' ? t : (mode + ': ' + t);
+    try {
+      const r = await fetch('/ai/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: prompt || mode }) });
+      const d = await r.json();
+      out.textContent = (d.text || '(no response)') + (d.source ? ('\n\n— ' + d.source) : '');
+    } catch (e) { out.textContent = 'Could not reach the AI.'; }
+  }
+  function copyAI() {
+    const t = document.getElementById('aiOut').textContent.replace(/\n\n— .*$/, '');
+    if (navigator.clipboard) navigator.clipboard.writeText(t);
+  }
+</script>
 
 <div class="card">
   <h2>Leads</h2>
