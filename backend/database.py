@@ -23,7 +23,9 @@ def init_db() -> None:
             name TEXT NOT NULL,
             tagline TEXT NOT NULL,
             wifi_ssid TEXT,
-            wifi_password TEXT
+            wifi_password TEXT,
+            hot_leads INTEGER DEFAULT 0,
+            drafts INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS metrics (
@@ -53,23 +55,29 @@ def init_db() -> None:
         """
     )
 
+    # Business profile. Change these to your real business any time (or via the
+    # dashboard later). hot_leads / drafts feed the ESP32 lead-finder box.
+    conn.execute("DELETE FROM profiles")
     conn.execute(
-        "INSERT OR IGNORE INTO profiles (id, name, tagline, wifi_ssid, wifi_password) VALUES (?, ?, ?, ?, ?)",
-        (1, "MarketHub", "Growth dashboard for modern businesses", "MarketHub-Setup", "markethub123"),
+        "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads, drafts) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (1, "Insulation Lead Finders", "Spray foam & insulation — lead generation",
+         "MarketHub-Setup", "markethub123", 15, 24),
     )
 
+    # Pipeline overview (shown on Home) + lead sources (shown under Sources).
     conn.execute("DELETE FROM metrics")
     conn.executemany(
         "INSERT INTO metrics (category, label, value, change) VALUES (?, ?, ?, ?)",
         [
-            ("social", "Instagram", "18.2K", "+12%"),
-            ("social", "TikTok", "9.4K", "+28%"),
-            ("social", "Facebook", "7.1K", "+6%"),
-            ("social", "YouTube", "4.8K", "+9%"),
-            ("analytics", "Website visitors", "42.4K", "+18%"),
-            ("analytics", "Social engagement", "93%", "+11%"),
-            ("analytics", "Leads generated", "321", "+24%"),
-            ("analytics", "Sales", "$18.2K", "+15%"),
+            ("analytics", "Hot leads", "15", "+3"),
+            ("analytics", "Drafts", "24", "+5"),
+            ("analytics", "Appointments", "9", "+2"),
+            ("analytics", "Jobs booked", "$42.6K", "+18%"),
+            ("social", "Facebook leads", "142", "+21%"),
+            ("social", "Google LSA", "98", "+12%"),
+            ("social", "Referrals", "54", "+8%"),
+            ("social", "Website form", "61", "+15%"),
         ],
     )
 
@@ -77,8 +85,8 @@ def init_db() -> None:
     conn.executemany(
         "INSERT INTO reviews (platform, rating, author, comment, new_alert) VALUES (?, ?, ?, ?, ?)",
         [
-            ("Google", 4.9, "Mina K.", "Fast response and beautifully styled launch content.", 1),
-            ("Facebook", 4.8, "Luca P.", "The team made our campaign feel polished and premium.", 1),
+            ("Google", 5.0, "Dana R.", "Crew sealed our attic fast — energy bill already dropped.", 1),
+            ("Facebook", 4.9, "Marcus T.", "Great quote, clean install, very professional team.", 1),
         ],
     )
 
@@ -86,9 +94,9 @@ def init_db() -> None:
     conn.executemany(
         "INSERT INTO customers (name, company, contact, status) VALUES (?, ?, ?, ?)",
         [
-            ("Ava Brooks", "Northstar Studio", "ava@northstar.co", "Lead"),
-            ("Jorge Silva", "Lumen Labs", "jorge@lumenlabs.io", "Quote"),
-            ("Riley Chen", "Pine & Pixel", "riley@pinepixel.com", "Appointment"),
+            ("Ava Brooks", "Attic insulation", "ava@email.com", "Hot lead"),
+            ("Jorge Silva", "Spray foam quote", "jorge@email.com", "Quote sent"),
+            ("Riley Chen", "Crawlspace job", "riley@email.com", "Scheduled"),
         ],
     )
 
@@ -111,42 +119,38 @@ def fetch_dashboard_payload() -> dict[str, Any]:
             "wifi_ssid": profile["wifi_ssid"],
             "wifi_password": profile["wifi_password"],
         },
+        "leadboard": {
+            "hot_leads": profile["hot_leads"],
+            "drafts": profile["drafts"],
+        },
         "metrics": [
-            {
-                "category": row["category"],
-                "label": row["label"],
-                "value": row["value"],
-                "change": row["change"],
-            }
-            for row in metrics
+            {"category": r["category"], "label": r["label"], "value": r["value"], "change": r["change"]}
+            for r in metrics
         ],
         "reviews": [
             {
-                "platform": row["platform"],
-                "rating": row["rating"],
-                "author": row["author"],
-                "comment": row["comment"],
-                "new_alert": bool(row["new_alert"]),
+                "platform": r["platform"],
+                "rating": r["rating"],
+                "author": r["author"],
+                "comment": r["comment"],
+                "new_alert": bool(r["new_alert"]),
             }
-            for row in reviews
+            for r in reviews
         ],
         "customers": [
-            {
-                "name": row["name"],
-                "company": row["company"],
-                "contact": row["contact"],
-                "status": row["status"],
-            }
-            for row in customers
+            {"name": r["name"], "company": r["company"], "contact": r["contact"], "status": r["status"]}
+            for r in customers
         ],
         "cards": [
-            "Social Media",
-            "Reviews",
-            "AI Assistant",
-            "Customers",
-            "Analytics",
-            "QR Center",
-            "Marketing",
-            "Settings",
+            "Lead Sources", "Reviews", "AI Assistant", "Customers",
+            "Analytics", "QR Center", "Marketing", "Settings",
         ],
     }
+
+
+def fetch_leadcount() -> dict[str, int]:
+    """Tiny payload for the ESP32 lead-finder box."""
+    conn = get_connection()
+    row = conn.execute("SELECT hot_leads, drafts FROM profiles WHERE id = 1").fetchone()
+    conn.close()
+    return {"hot_leads": row["hot_leads"] if row else 0, "drafts": row["drafts"] if row else 0}

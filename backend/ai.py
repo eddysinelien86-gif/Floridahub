@@ -22,7 +22,8 @@ from __future__ import annotations
 import os
 
 MODEL = os.environ.get("MARKETHUB_MODEL", "claude-opus-5-5")
-BRAND = os.environ.get("MARKETHUB_BRAND", "our business")
+# Defaults to the insulation lead-gen business; override with MARKETHUB_BRAND.
+BRAND = os.environ.get("MARKETHUB_BRAND", "an insulation & spray-foam company (lead generation)")
 
 # Keep the three to four hundred token ceiling tight — this feeds a phone-sized
 # screen and short social posts, not essays.

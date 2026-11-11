@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 from ai import generate as ai_generate
-from database import fetch_dashboard_payload, init_db
+from database import fetch_dashboard_payload, fetch_leadcount, init_db
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
@@ -55,6 +55,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
         if path == "/api/dashboard":
             self._send_json(fetch_dashboard_payload())
+            return
+
+        if path == "/api/leadcount":
+            self._send_json(fetch_leadcount())
             return
 
         if path in ("/", "/index.html"):
