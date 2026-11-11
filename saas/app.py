@@ -338,6 +338,105 @@ def submit_lead(slug):
     return render_template("lead_thanks.html", tenant=t)
 
 
+# ---- Directory / company profiles / reviews / work gallery -------------------
+
+def _company_stats(tenant_id):
+    r = query_one(
+        "SELECT COUNT(*) AS c, COALESCE(AVG(rating), 0) AS avg FROM reviews WHERE tenant_id = ?",
+        (tenant_id,),
+    )
+    return int(r["c"] or 0), round(float(r["avg"] or 0), 1)
+
+
+@app.route("/directory")
+def directory():
+    q = request.args.get("q", "").strip()
+    companies = query("SELECT * FROM tenants ORDER BY id DESC")
+    cards = []
+    for c in companies:
+        if q and q.lower() not in (
+            (c["name"] or "") + " " + (c.get("city") or "") + " " + (c.get("services") or "")
+        ).lower():
+            continue
+        count, avg = _company_stats(c["id"])
+        post = query_one("SELECT image_url FROM posts WHERE tenant_id = ? ORDER BY id DESC", (c["id"],))
+        cards.append({"t": c, "reviews": count, "rating": avg,
+                      "cover": (post or {}).get("image_url")})
+    return render_template("directory.html", cards=cards, q=q, user=current_user())
+
+
+@app.route("/c/<slug>")
+def company(slug):
+    t = query_one("SELECT * FROM tenants WHERE slug = ?", (slug,))
+    if not t:
+        abort(404)
+    count, avg = _company_stats(t["id"])
+    posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
+    reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
+    return render_template("company.html", t=t, posts=posts, reviews=reviews,
+                           review_count=count, rating=avg, user=current_user())
+
+
+@app.route("/c/<slug>/review", methods=["POST"])
+def add_review(slug):
+    t = query_one("SELECT id FROM tenants WHERE slug = ?", (slug,))
+    if not t:
+        abort(404)
+    author = request.form.get("author", "").strip() or "Anonymous"
+    try:
+        rating = max(1, min(5, int(request.form.get("rating", "5"))))
+    except ValueError:
+        rating = 5
+    comment = request.form.get("comment", "").strip()
+    if comment:
+        execute("INSERT INTO reviews (tenant_id, author, rating, comment) VALUES (?, ?, ?, ?)",
+                (t["id"], author, rating, comment))
+    return redirect(url_for("company", slug=slug))
+
+
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        execute(
+            "UPDATE tenants SET tagline = ?, city = ?, phone = ?, bio = ?, services = ?, logo_url = ? "
+            "WHERE id = ?",
+            (request.form.get("tagline", "").strip(), request.form.get("city", "").strip(),
+             request.form.get("phone", "").strip(), request.form.get("bio", "").strip(),
+             request.form.get("services", "").strip(), request.form.get("logo_url", "").strip(),
+             u["tenant_id"]),
+        )
+        return redirect(url_for("profile", ok=1))
+    t = query_one("SELECT * FROM tenants WHERE id = ?", (u["tenant_id"],))
+    posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (u["tenant_id"],))
+    return render_template("profile.html", user=u, t=t, posts=posts, ok=request.args.get("ok"))
+
+
+@app.route("/posts/add", methods=["POST"])
+def add_post():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    image_url = request.form.get("image_url", "").strip()
+    caption = request.form.get("caption", "").strip()
+    if image_url:
+        execute("INSERT INTO posts (tenant_id, image_url, caption) VALUES (?, ?, ?)",
+                (u["tenant_id"], image_url, caption))
+    return redirect(url_for("profile"))
+
+
+@app.route("/posts/delete", methods=["POST"])
+def delete_post():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    execute("DELETE FROM posts WHERE id = ? AND tenant_id = ?",
+            (request.form.get("pid", ""), u["tenant_id"]))
+    return redirect(url_for("profile"))
+
+
 @app.route("/health")
 def health():
     """Quick status check: which database is in use and whether it's connected."""

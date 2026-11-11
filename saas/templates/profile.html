@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}My Profile — {{ user['tname'] }}{% endblock %}
+{% block content %}
+<h1>My Public Profile</h1>
+<p class="muted">This is what homeowners see in the directory.
+  <a href="/c/{{ user['tslug'] }}" target="_blank">View your public page ↗</a></p>
+
+{% if ok %}<div class="out" style="border-color:rgba(52,211,153,.4);">✅ Saved.</div>{% endif %}
+
+<div class="card" style="margin:18px 0;">
+  <h2>Business info</h2>
+  <form method="post" action="/profile">
+    <label>Tagline</label>
+    <input name="tagline" value="{{ t['tagline'] or '' }}" placeholder="Spray foam & insulation experts">
+    <div class="row">
+      <div style="flex:1;min-width:200px;">
+        <label>City / area</label>
+        <input name="city" value="{{ t['city'] or '' }}" placeholder="Broward County, FL">
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <label>Phone</label>
+        <input name="phone" value="{{ t['phone'] or '' }}" placeholder="(954) 555-1234">
+      </div>
+    </div>
+    <label>Services (comma-separated)</label>
+    <input name="services" value="{{ t['services'] or '' }}" placeholder="Attic Insulation, Spray Foam, Crawlspace, Energy Audits">
+    <label>About your business</label>
+    <textarea name="bio" placeholder="Tell homeowners who you are and why they should choose you.">{{ t['bio'] or '' }}</textarea>
+    <label>Logo image URL (optional)</label>
+    <input name="logo_url" value="{{ t['logo_url'] or '' }}" placeholder="https://…/logo.png">
+    <button type="submit">Save profile</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Show your work</h2>
+  <p class="muted">Add photos of completed jobs — this is what makes homeowners choose you.</p>
+  <form method="post" action="/posts/add">
+    <label>Photo URL</label>
+    <input name="image_url" placeholder="https://…/job-photo.jpg" required>
+    <label>Caption</label>
+    <input name="caption" placeholder="Attic spray foam job in Davie, FL">
+    <button type="submit">Add photo</button>
+  </form>
+  <p class="muted" style="font-size:13px;margin-top:8px;">💡 Soon you'll upload straight from your phone — for now, paste an image link.</p>
+
+  {% if posts %}
+  <div class="pgrid" style="margin-top:16px;">
+    {% for p in posts %}
+    <figure class="pitem">
+      <img src="{{ p['image_url'] }}" alt="work photo" loading="lazy">
+      {% if p['caption'] %}<figcaption>{{ p['caption'] }}</figcaption>{% endif %}
+      <form method="post" action="/posts/delete" onsubmit="return confirm('Delete this photo?');">
+        <input type="hidden" name="pid" value="{{ p['id'] }}">
+        <button class="btn ghost" style="width:100%;border-radius:0;padding:8px;font-size:12px;margin:0;">Delete</button>
+      </form>
+    </figure>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+  .pitem{margin:0;background:#0a1526;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .pitem img{width:100%;height:150px;object-fit:cover;display:block;}
+  .pitem figcaption{padding:8px 10px;font-size:13px;color:var(--muted);}
+</style>
+{% endblock %}

@@ -85,6 +85,12 @@ def init_schema() -> None:
         f"""CREATE TABLE IF NOT EXISTS leads (
             id {pk}, tenant_id INTEGER NOT NULL, name TEXT, contact TEXT,
             service TEXT, status TEXT DEFAULT 'New', created_at {ts})""",
+        f"""CREATE TABLE IF NOT EXISTS reviews (
+            id {pk}, tenant_id INTEGER NOT NULL, author TEXT, rating INTEGER DEFAULT 5,
+            comment TEXT, created_at {ts})""",
+        f"""CREATE TABLE IF NOT EXISTS posts (
+            id {pk}, tenant_id INTEGER NOT NULL, image_url TEXT, caption TEXT,
+            created_at {ts})""",
     ]
     conn = _conn()
     try:
@@ -100,6 +106,11 @@ def init_schema() -> None:
     migrations = [
         "ALTER TABLE tenants ADD COLUMN plan TEXT DEFAULT 'trial'",
         "ALTER TABLE tenants ADD COLUMN stripe_customer_id TEXT",
+        "ALTER TABLE tenants ADD COLUMN city TEXT",
+        "ALTER TABLE tenants ADD COLUMN phone TEXT",
+        "ALTER TABLE tenants ADD COLUMN bio TEXT",
+        "ALTER TABLE tenants ADD COLUMN services TEXT",
+        "ALTER TABLE tenants ADD COLUMN logo_url TEXT",
     ]
     for m in migrations:
         c = _conn()

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ t['name'] }}{% endblock %}
+{% block content %}
+<a href="/directory" class="muted" style="font-size:14px;">← Back to directory</a>
+
+<div class="card" style="margin:12px 0 18px;">
+  <div class="row" style="align-items:center;gap:18px;">
+    <div class="pavatar" {% if t['logo_url'] %}style="background-image:url('{{ t['logo_url'] }}')"{% endif %}>
+      {% if not t['logo_url'] %}{{ t['name'][:1] }}{% endif %}
+    </div>
+    <div style="flex:1;min-width:220px;">
+      <h1 style="margin:0;">{{ t['name'] }}</h1>
+      <div class="stars" style="margin:6px 0;">
+        {% for i in range(5) %}<span class="{{ 'on' if i < rating|round(0,'floor')|int else 'off' }}">★</span>{% endfor %}
+        <span class="muted">{{ rating }} · {{ review_count }} review{{ '' if review_count == 1 else 's' }}</span>
+      </div>
+      <div class="muted">📍 {{ t['city'] or 'Local area' }}{% if t['phone'] %} · 📞 {{ t['phone'] }}{% endif %}</div>
+    </div>
+    <a class="btn" href="/t/{{ t['slug'] }}">Request a Free Quote →</a>
+  </div>
+  {% if t['bio'] %}<p style="margin:16px 0 0;">{{ t['bio'] }}</p>{% endif %}
+  {% if t['services'] %}
+  <div class="btnrow" style="margin-top:12px;">
+    {% for s in t['services'].split(',') %}{% if s.strip() %}<span class="tag" style="background:rgba(96,165,250,.14);color:var(--accent);">{{ s.strip() }}</span>{% endif %}{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:18px;">
+  <h2>Our Work</h2>
+  {% if posts %}
+  <div class="pgrid">
+    {% for p in posts %}
+    <figure class="pitem">
+      <img src="{{ p['image_url'] }}" alt="work photo" loading="lazy">
+      {% if p['caption'] %}<figcaption>{{ p['caption'] }}</figcaption>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No photos yet — check back soon to see their work.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Reviews</h2>
+  {% for r in reviews %}
+  <div style="border-bottom:1px solid var(--line);padding:12px 0;">
+    <div class="stars">{% for i in range(5) %}<span class="{{ 'on' if i < r['rating'] else 'off' }}">★</span>{% endfor %}
+      <b style="margin-left:6px;">{{ r['author'] }}</b></div>
+    <p style="margin:6px 0 0;">{{ r['comment'] }}</p>
+  </div>
+  {% else %}
+  <p class="muted">No reviews yet. Be the first!</p>
+  {% endfor %}
+
+  <h3 style="margin-top:20px;">Leave a review</h3>
+  <form method="post" action="/c/{{ t['slug'] }}/review">
+    <label>Your name</label>
+    <input name="author" placeholder="Jane from Fort Lauderdale">
+    <label>Rating</label>
+    <select name="rating">
+      <option value="5">★★★★★ Excellent</option>
+      <option value="4">★★★★ Good</option>
+      <option value="3">★★★ Okay</option>
+      <option value="2">★★ Poor</option>
+      <option value="1">★ Bad</option>
+    </select>
+    <label>Your review</label>
+    <textarea name="comment" placeholder="How was your experience?" required></textarea>
+    <button type="submit">Post review</button>
+  </form>
+</div>
+
+<style>
+  .pavatar{width:84px;height:84px;border-radius:18px;background:linear-gradient(135deg,var(--accent),var(--accent2));background-size:cover;background-position:center;display:grid;place-items:center;font-size:36px;font-weight:900;color:#fff;}
+  .stars{display:flex;align-items:center;gap:2px;} .stars .on{color:#fbbf24;} .stars .off{color:#38445c;}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+  .pitem{margin:0;background:#0a1526;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .pitem img{width:100%;height:170px;object-fit:cover;display:block;}
+  .pitem figcaption{padding:8px 10px;font-size:13px;color:var(--muted);}
+</style>
+{% endblock %}

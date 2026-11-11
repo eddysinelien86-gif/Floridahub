@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Find a Contractor — Directory{% endblock %}
+{% block content %}
+<div class="hero" style="padding:24px 0 6px;">
+  <h1>Find a Local Pro</h1>
+  <p class="muted">Browse home-service companies, see their work, read reviews, and request a free quote.</p>
+</div>
+
+<form method="get" action="/directory" style="max-width:520px;margin:0 auto 24px;">
+  <input name="q" value="{{ q or '' }}" placeholder="Search by company, city, or service…">
+</form>
+
+{% if cards %}
+<div class="dgrid">
+  {% for c in cards %}
+  <a class="ccard" href="/c/{{ c.t['slug'] }}">
+    <div class="cover" {% if c.cover %}style="background-image:url('{{ c.cover }}')"{% endif %}>
+      {% if not c.cover %}<span>🏠</span>{% endif %}
+    </div>
+    <div class="cbody">
+      <div class="cname">{{ c.t['name'] }}</div>
+      <div class="muted" style="font-size:13px;">{{ c.t['city'] or 'Local area' }}</div>
+      <div class="stars">
+        {% for i in range(5) %}<span class="{{ 'on' if i < c.rating|round(0,'floor')|int else 'off' }}">★</span>{% endfor %}
+        <span class="muted" style="font-size:12px;">{{ c.rating }} ({{ c.reviews }})</span>
+      </div>
+      {% if c.t['services'] %}<div class="muted" style="font-size:12px;margin-top:6px;">{{ c.t['services'][:60] }}</div>{% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card center"><p class="muted">No companies found{% if q %} for "{{ q }}"{% endif %}. Check back soon!</p></div>
+{% endif %}
+
+<style>
+  .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;}
+  .ccard{display:block;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;color:var(--text);transition:transform .12s,border-color .12s;}
+  .ccard:hover{transform:translateY(-3px);border-color:var(--accent);}
+  .cover{height:150px;background:linear-gradient(135deg,#14263f,#0e1a2e);background-size:cover;background-position:center;display:grid;place-items:center;font-size:40px;}
+  .cbody{padding:14px 16px 18px;}
+  .cname{font-weight:800;font-size:17px;margin-bottom:2px;}
+  .stars{margin-top:6px;display:flex;align-items:center;gap:2px;}
+  .stars .on{color:#fbbf24;} .stars .off{color:#38445c;}
+</style>
+{% endblock %}
