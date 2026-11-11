@@ -294,6 +294,22 @@ def submit_lead(slug):
     return render_template("lead_thanks.html", tenant=t)
 
 
+@app.route("/health")
+def health():
+    """Quick status check: which database is in use and whether it's connected."""
+    import db
+    info = {"database": "postgres (Neon) ✅" if db.USE_PG else "sqlite (TEMPORARY — not saved!) ⚠️"}
+    try:
+        db.query_one("SELECT 1 AS x")
+        info["connected"] = True
+        info["companies"] = db.query_one("SELECT COUNT(*) AS c FROM tenants")["c"]
+        info["leads"] = db.query_one("SELECT COUNT(*) AS c FROM leads")["c"]
+    except Exception as exc:
+        info["connected"] = False
+        info["error"] = str(exc)[:200]
+    return info
+
+
 _LAST_SOCIAL_LOG = ["(no run yet — trigger a post first)"]
 
 
