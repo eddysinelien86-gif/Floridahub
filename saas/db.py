@@ -97,6 +97,9 @@ def init_schema() -> None:
         f"""CREATE TABLE IF NOT EXISTS favorites (
             id {pk}, homeowner_id INTEGER NOT NULL, tenant_id INTEGER NOT NULL,
             created_at {ts})""",
+        f"""CREATE TABLE IF NOT EXISTS social_log (
+            id {pk}, tenant_id INTEGER, platforms TEXT, caption TEXT, media_url TEXT,
+            created_at {ts})""",
     ]
     conn = _conn()
     try:

@@ -162,6 +162,7 @@ def run() -> list[str]:
         return log
     service, angle = _service_today()
     caption = _ai_caption(service, angle)
+    posted: list[str] = []
     log.append(f"Service today: {service}")
     log.append(f"Caption:\n{caption}")
 
@@ -171,6 +172,7 @@ def run() -> list[str]:
         res = _post(f"{c['graph']}/{c['page_id']}/photos",
                     {"url": c["image"], "caption": fb_msg, "access_token": c["token"]})
         log.append(f"✅ Facebook posted (post id: {res.get('post_id') or res.get('id')})")
+        posted.append("Facebook")
     except Exception as exc:
         log.append(f"❌ Facebook failed: {exc}")
 
@@ -203,6 +205,7 @@ def run() -> list[str]:
                     pub = _post(f"{c['graph']}/{ig_id}/media_publish",
                                 {"creation_id": cid, "access_token": c["token"]})
                     log.append(f"✅ Instagram posted (media id: {pub.get('id')})")
+                    posted.append("Instagram")
                 else:
                     log.append("❌ Instagram image did not finish processing in time.")
         except Exception as exc:
@@ -217,6 +220,19 @@ def run() -> list[str]:
                     log.append(f"✅ Instagram story posted (id: {sp.get('id')})")
             except Exception as exc:
                 log.append(f"❌ Instagram story failed: {exc}")
+
+    # Record the post so it shows on the company's dashboard (best-effort).
+    if posted:
+        try:
+            import db
+            slug = c["lead"].rstrip("/").split("/t/")[-1]
+            row = db.query_one("SELECT id FROM tenants WHERE slug = ?", (slug,))
+            db.execute(
+                "INSERT INTO social_log (tenant_id, platforms, caption, media_url) VALUES (?, ?, ?, ?)",
+                ((row or {}).get("id"), ", ".join(posted), caption, c["image"]),
+            )
+        except Exception as exc:
+            log.append(f"(dashboard log skipped: {exc})")
     return log
 
 

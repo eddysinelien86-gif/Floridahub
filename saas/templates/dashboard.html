@@ -1,44 +1,51 @@
 {% extends "base.html" %}
-{% block title %}{{ user['tname'] }} — Dashboard{% endblock %}
+{% block title %}{{ user['tname'] }} — Command Center{% endblock %}
 {% block content %}
-<h1>{{ user['tname'] }}</h1>
-<p class="muted">Your lead dashboard</p>
-
-<div class="grid">
-  <div class="stat"><div class="v">{{ leads|length }}</div><div class="k">Total leads</div></div>
-  <div class="stat"><div class="v">{{ leads|selectattr('status','equalto','New')|list|length }}</div><div class="k">New</div></div>
-  <div class="stat"><div class="v">🔗</div><div class="k">Your public form</div></div>
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+  <div>
+    <div class="section-label">Command Center</div>
+    <h1>{{ user['tname'] }}</h1>
+  </div>
+  <a class="btn ghost" href="/c/{{ user['tslug'] }}" target="_blank">View public page ↗</a>
 </div>
 
-<div class="card" style="margin-bottom:18px;">
-  <h2>Your plan</h2>
-  {% if user['plan'] == 'pro' %}
-    <p>✅ You're on <b>Pro</b>. Everything's unlocked — thanks for your support!</p>
+<!-- live numbers -->
+<div class="grid">
+  <div class="stat"><div class="v">{{ stats.leads }}</div><div class="k">Total leads</div></div>
+  <div class="stat"><div class="v">{{ stats.new }}</div><div class="k">New leads</div></div>
+  <div class="stat"><div class="v">{{ rating }} ★</div><div class="k">{{ review_count }} review{{ '' if review_count == 1 else 's' }}</div></div>
+  <div class="stat"><div class="v">{{ stats.socials }}</div><div class="k">Auto social posts</div></div>
+</div>
+
+<!-- what your company is generating: social activity -->
+<div class="card">
+  <h2>🤖 Your automatic social posts</h2>
+  <p class="muted">Posted to Facebook &amp; Instagram by your AI bot — reuse these to advertise anywhere.</p>
+  {% if socials %}
+  <div class="feed">
+    {% for s in socials %}
+    <div class="fcard">
+      {% if s['media_url'] %}<img src="{{ s['media_url'] }}" alt="post image">{% endif %}
+      <div class="fbody">
+        <div class="fmeta"><span class="tag">{{ s['platforms'] }}</span>
+          <span class="muted" style="font-size:12px;">{{ (s['created_at']|string)[:16] }}</span></div>
+        <p style="font-size:13.5px;margin:8px 0 0;white-space:pre-wrap;">{{ s['caption'] }}</p>
+        <button class="btn ghost" style="margin-top:10px;padding:7px 12px;font-size:12.5px;"
+          onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.c);this.textContent='Copied ✓'"
+          data-c="{{ s['caption'] }}">📋 Copy caption</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% else %}
-    <p class="muted">You're on the free trial. Upgrade to Pro ({{ price_label }}) to keep your form,
-      AI assistant, and leads running with no limits.</p>
-    <form method="post" action="/subscribe"><button>Upgrade to Pro — {{ price_label }} →</button></form>
-    {% if not billing_on %}
-    <p class="muted" style="font-size:13px; margin-top:8px;">Payments turn on once Stripe keys are added.</p>
-    {% endif %}
+  <p class="muted">No auto-posts yet — your bot posts twice a day. They'll show up here automatically.</p>
   {% endif %}
 </div>
 
-<div class="card" style="margin-bottom:18px;">
-  <h2>Share your lead form</h2>
-  <p class="muted">Put this link or QR on flyers, your truck, Facebook, your website. Every submission shows up below.</p>
-  <div class="row">
-    <div style="flex:1; min-width:240px;">
-      <div class="urlbox">{{ form_url }}</div>
-      <a class="btn ghost" href="{{ form_url }}" target="_blank" style="margin-top:12px;">Open my form ↗</a>
-    </div>
-    <img class="qr" src="/qr?data={{ form_url|urlencode }}" alt="QR code to your lead form" />
-  </div>
-</div>
-
-<div class="card" style="margin-bottom:18px;">
-  <h2>🤖 AI Assistant</h2>
-  <p class="muted">Write posts, hashtags, and review replies in {{ user['tname'] }}'s voice.</p>
+<!-- AI content generator -->
+<div class="card">
+  <h2>✍️ AI content generator</h2>
+  <p class="muted">Write posts, captions, and review replies in {{ user['tname'] }}'s voice.</p>
   <textarea id="aiPrompt" placeholder="e.g. free attic inspection special this week"></textarea>
   <div class="btnrow">
     <button onclick="gen('caption')">Caption</button>
@@ -49,26 +56,55 @@
   <div id="aiOut" class="out">Your content will appear here.</div>
   <button class="btn ghost" onclick="copyAI()" style="margin-top:10px;">📋 Copy</button>
 </div>
-<script>
-  async function gen(mode) {
-    const t = document.getElementById('aiPrompt').value.trim();
-    const out = document.getElementById('aiOut');
-    out.textContent = 'Thinking…';
-    const prompt = mode === 'idea' ? t : (mode + ': ' + t);
-    try {
-      const r = await fetch('/ai/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt: prompt || mode }) });
-      const d = await r.json();
-      out.textContent = (d.text || '(no response)') + (d.source ? ('\n\n— ' + d.source) : '');
-    } catch (e) { out.textContent = 'Could not reach the AI.'; }
-  }
-  function copyAI() {
-    const t = document.getElementById('aiOut').textContent.replace(/\n\n— .*$/, '');
-    if (navigator.clipboard) navigator.clipboard.writeText(t);
-  }
-</script>
 
+<!-- work showcase -->
 <div class="card">
-  <h2>Leads</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h2 style="margin:0;">📸 Your work showcase</h2>
+    <a class="btn ghost" href="/profile" style="margin:0;padding:8px 14px;font-size:13px;">Add photos/video</a>
+  </div>
+  {% if posts %}
+  <div class="wgrid" style="margin-top:14px;">
+    {% for p in posts %}
+    <div class="witem">
+      {% if '/video/' in p['image_url'] or p['image_url'].endswith(('.mp4','.mov','.webm')) %}
+      <video src="{{ p['image_url'] }}" muted preload="metadata"></video>
+      {% else %}<img src="{{ p['image_url'] }}" alt="work" loading="lazy">{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted" style="margin-top:8px;">No work photos yet. <a href="/profile">Add some →</a> — homeowners choose pros who show their work.</p>
+  {% endif %}
+</div>
+
+<!-- share -->
+<div class="card">
+  <h2>🔗 Share your lead form</h2>
+  <div class="row">
+    <div style="flex:1;min-width:240px;">
+      <div class="urlbox">{{ form_url }}</div>
+      <a class="btn ghost" href="{{ form_url }}" target="_blank" style="margin-top:12px;">Open my form ↗</a>
+    </div>
+    <img class="qr" src="/qr?data={{ form_url|urlencode }}" alt="QR code" />
+  </div>
+</div>
+
+<!-- plan -->
+<div class="card">
+  <h2>💳 Your plan</h2>
+  {% if user['plan'] == 'pro' %}
+    <p>✅ You're on <b>Pro</b>. Everything's unlocked.</p>
+  {% else %}
+    <p class="muted">You're on the free trial. Upgrade to Pro ({{ price_label }}) to keep everything running with no limits.</p>
+    <form method="post" action="/subscribe"><button>Upgrade to Pro — {{ price_label }} →</button></form>
+    {% if not billing_on %}<p class="muted" style="font-size:13px;margin-top:8px;">Payments turn on once Stripe keys are added.</p>{% endif %}
+  {% endif %}
+</div>
+
+<!-- leads table -->
+<div class="card">
+  <h2>📥 Recent leads</h2>
   {% if leads %}
   <table>
     <tr><th>Name</th><th>Contact</th><th>Service</th><th>Status</th><th>When</th></tr>
@@ -77,16 +113,34 @@
       <td>{{ l['name'] or '—' }}</td>
       <td>{{ l['contact'] or '—' }}</td>
       <td>{{ l['service'] or '—' }}</td>
-      <td>
-        <span class="tag">{{ l['status'] }}</span>
-        {% if l['is_old'] %}<span class="tag" style="background:rgba(148,163,184,.22);color:#94a3b8;margin-left:4px;">Old</span>{% endif %}
-      </td>
+      <td><span class="tag">{{ l['status'] }}</span>{% if l['is_old'] %} <span class="tag" style="background:rgba(148,163,184,.2);color:#94a3b8;">Old</span>{% endif %}</td>
       <td class="muted">{{ (l['created_at']|string)[:16] }}</td>
     </tr>
     {% endfor %}
   </table>
   {% else %}
-  <p class="muted">No leads yet. Share your form link above — new leads will appear here automatically.</p>
+  <p class="muted">No leads yet. Share your form link above — they'll appear here.</p>
   {% endif %}
 </div>
+
+<style>
+  .feed{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:14px;}
+  .fcard{background:var(--ink);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .fcard img{width:100%;height:150px;object-fit:cover;display:block;}
+  .fbody{padding:12px 14px;} .fmeta{display:flex;justify-content:space-between;align-items:center;}
+  .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+  .witem{border-radius:12px;overflow:hidden;border:1px solid var(--line);background:#000;}
+  .witem img,.witem video{width:100%;height:120px;object-fit:cover;display:block;}
+</style>
+<script>
+  async function gen(mode){
+    const t=document.getElementById('aiPrompt').value.trim(),out=document.getElementById('aiOut');
+    out.textContent='Thinking…';
+    const prompt=mode==='idea'?t:(mode+': '+t);
+    try{const r=await fetch('/ai/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt||mode})});
+      const d=await r.json();out.textContent=(d.text||'(no response)')+(d.source?('\n\n— '+d.source):'');}
+    catch(e){out.textContent='Could not reach the AI.';}
+  }
+  function copyAI(){const t=document.getElementById('aiOut').textContent.replace(/\n\n— .*$/,'');navigator.clipboard&&navigator.clipboard.writeText(t);}
+</script>
 {% endblock %}

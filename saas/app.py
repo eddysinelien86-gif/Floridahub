@@ -286,17 +286,29 @@ def dashboard():
     u = current_user()
     if not u:
         return redirect(url_for("login"))
+    tid = u["tenant_id"]
     leads = query(
         "SELECT name, contact, service, status, created_at FROM leads "
         "WHERE tenant_id = ? ORDER BY id DESC",
-        (u["tenant_id"],),
+        (tid,),
     )
-    # Tag leads older than 30 days as "Old" (display only — nothing is deleted).
     for lead in leads:
         lead["is_old"] = _lead_is_old(lead.get("created_at"))
-    form_url = request.host_url.rstrip("/") + url_for("public_form", slug=u["tslug"])
+    new_leads = sum(1 for l in leads if l["status"] == "New")
+    review_count, rating = _company_stats(tid)
+    reviews = query("SELECT * FROM reviews WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:5]
+    posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (tid,))
+    socials = query("SELECT * FROM social_log WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:6]
+    base = (os.environ.get("APP_URL", "").strip() or request.host_url).rstrip("/")
+    stats = {
+        "leads": len(leads), "new": new_leads, "reviews": review_count,
+        "rating": rating, "posts": len(posts), "socials": len(socials),
+    }
     return render_template(
-        "dashboard.html", user=u, leads=leads, form_url=form_url,
+        "dashboard.html", user=u, leads=leads[:8], stats=stats, reviews=reviews,
+        posts=posts[:6], socials=socials, rating=rating, review_count=review_count,
+        form_url=base + url_for("public_form", slug=u["tslug"]),
+        profile_url=base + url_for("company", slug=u["tslug"]),
         billing_on=BILLING_ON, price_label=PLAN_PRICE_LABEL,
     )
 
