@@ -169,6 +169,46 @@ def home():
     return render_template("home.html", user=current_user())
 
 
+@app.route("/manifest.json")
+def manifest():
+    return {
+        "name": "AI LeadPilot", "short_name": "LeadPilot",
+        "start_url": "/dashboard", "scope": "/", "display": "standalone",
+        "background_color": "#070b16", "theme_color": "#070b16",
+        "icons": [
+            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+        ],
+    }
+
+
+@app.route("/ask")
+def ask():
+    u = current_user()
+    if not u:
+        return redirect(url_for("login"))
+    return render_template("ask.html", user=u)
+
+
+@app.route("/ask/send", methods=["POST"])
+def ask_send():
+    u = current_user()
+    if not u:
+        return {"error": "auth"}, 401
+    q = ((request.get_json(force=True, silent=True) or {}).get("q") or "").strip()
+    tid = u["tenant_id"]
+    lc = query_one("SELECT COUNT(*) AS c FROM leads WHERE tenant_id = ?", (tid,))["c"]
+    rc, rating = _company_stats(tid)
+    views = query_one("SELECT COUNT(*) AS c FROM page_views WHERE tenant_id = ?", (tid,))["c"]
+    socials = query_one("SELECT COUNT(*) AS c FROM social_log WHERE tenant_id = ?", (tid,))["c"]
+    recent = query("SELECT name, service FROM leads WHERE tenant_id = ? ORDER BY id DESC", (tid,))[:10]
+    ctx = (f"Business: {u['tname']}. Total leads: {lc}. Page views: {views}. "
+           f"Reviews: {rc} (avg {rating} stars). Automatic social posts made: {socials}. "
+           "Recent leads: " + ("; ".join(f"{l['name']} - {l['service']}" for l in recent) or "none yet"))
+    import ai_helper
+    return ai_helper.ask(q, ctx, u["tname"])
+
+
 @app.route("/join", methods=["GET", "POST"])
 def join():
     if request.method == "POST":

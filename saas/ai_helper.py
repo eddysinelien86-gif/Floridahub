@@ -47,6 +47,36 @@ def _fallback(prompt: str, mode: str, brand: str) -> dict:
     return {"text": samples[mode], "mode": mode, "source": "sample"}
 
 
+def ask(question: str, context: str, brand: str = "your business") -> dict:
+    """Conversational assistant that answers the owner's questions using their
+    live business data (passed in `context`)."""
+    question = (question or "").strip()
+    if not question:
+        return {"text": "Ask me anything — your leads, reviews, social posts, or what to do next.", "source": "sample"}
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return {"text": ("I can answer that live once your Claude API key is connected. "
+                         f"Here's your snapshot right now:\n\n{context}"), "source": "sample"}
+    try:
+        from anthropic import Anthropic
+
+        client = Anthropic()
+        resp = client.messages.create(
+            model=MODEL,
+            max_tokens=450,
+            system=(f"You are the AI assistant inside {brand}'s lead-generation app. "
+                    "Answer the owner's question concisely and practically using the DATA provided. "
+                    "Give specific, actionable advice for growing their home-services business. "
+                    "If they ask you to do something the app can do (email leads, text leads, post "
+                    "to social, add work photos), tell them exactly where to tap."),
+            output_config={"effort": "low"},
+            messages=[{"role": "user", "content": f"DATA:\n{context}\n\nQUESTION: {question}"}],
+        )
+        text = "".join(b.text for b in resp.content if b.type == "text").strip()
+        return {"text": text or "I'm not sure — try rephrasing.", "source": "claude"}
+    except Exception as exc:
+        return {"text": f"Couldn't reach the AI right now ({exc}).", "source": "error"}
+
+
 def generate(prompt: str, brand: str = "your business") -> dict:
     prompt = (prompt or "").strip()
     mode = detect_mode(prompt)

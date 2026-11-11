@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Ask — AI LeadPilot{% endblock %}
+{% block content %}
+<div class="section-label">Assistant</div>
+<h1>Ask AI LeadPilot</h1>
+<p class="muted">Ask about your leads, reviews, posts, or what to do next to grow.</p>
+
+<div class="card" style="margin-top:14px;">
+  <div id="chat" class="chat">
+    <div class="msg bot">👋 Hi! Ask me things like “How many leads this week?”, “Which service gets the most interest?”, or “What should I post next?”</div>
+  </div>
+  <div class="askrow">
+    <input id="q" placeholder="Ask anything about your business…" onkeydown="if(event.key==='Enter')send()">
+    <button onclick="send()" style="margin:0;">Ask</button>
+  </div>
+  <div class="chips2">
+    <button class="btn ghost chip2" onclick="quick('How are my leads doing this week?')">Leads this week</button>
+    <button class="btn ghost chip2" onclick="quick('What should I post on social next?')">What to post</button>
+    <button class="btn ghost chip2" onclick="quick('How can I get more leads?')">Get more leads</button>
+  </div>
+</div>
+
+<style>
+  .chat{display:flex;flex-direction:column;gap:10px;min-height:120px;max-height:52vh;overflow-y:auto;padding:4px 2px 12px;}
+  .msg{max-width:88%;padding:12px 14px;border-radius:15px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;}
+  .msg.bot{align-self:flex-start;background:var(--ink);border:1px solid var(--line);}
+  .msg.me{align-self:flex-end;background:rgba(91,140,255,.16);border:1px solid rgba(91,140,255,.3);}
+  .askrow{display:flex;gap:8px;align-items:center;}
+  .askrow input{flex:1;}
+  .chips2{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .chip2{margin:0;padding:8px 13px;font-size:13px;}
+</style>
+<script>
+  const chat=document.getElementById('chat');
+  function add(cls,txt){const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}
+  function quick(t){document.getElementById('q').value=t;send();}
+  async function send(){
+    const inp=document.getElementById('q');const q=inp.value.trim();if(!q)return;
+    add('me',q);inp.value='';const t=add('bot','Thinking…');
+    try{const r=await fetch('/ask/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q:q})});
+      const d=await r.json();t.textContent=d.text||'(no answer)';}
+    catch(e){t.textContent='Could not reach the assistant.';}
+  }
+</script>
+{% endblock %}

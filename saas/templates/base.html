@@ -6,7 +6,11 @@
   <title>{% block title %}AI LeadPilot{% endblock %}</title>
   <link rel="icon" type="image/png" href="/static/favicon-32.png" />
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" />
-  <meta name="theme-color" content="#0b1120" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AI LeadPilot" />
+  <meta name="theme-color" content="#070b16" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -110,6 +114,22 @@
 
     @media (max-width:860px){ .grid{grid-template-columns:repeat(2,1fr);} }
     @media (max-width:560px){ .wrap{padding:22px 15px 48px;} .card{padding:20px;} .hero h1{font-size:32px;} .brand span.full{display:none;} }
+
+    /* bottom tab bar (mobile app feel) */
+    .tabbar{display:none;}
+    @media (max-width:720px){
+      .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;
+        padding:8px 10px calc(8px + env(safe-area-inset-bottom));gap:2px;
+        background:rgba(9,14,26,.92);backdrop-filter:saturate(160%) blur(16px);-webkit-backdrop-filter:saturate(160%) blur(16px);
+        border-top:1px solid var(--line);}
+      .tabbar a,.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+        background:none;border:none;box-shadow:none;margin:0;padding:6px 2px;color:var(--soft);font-weight:600;font-size:11px;border-radius:12px;transition:.15s;}
+      .tabbar a .ic,.tabbar button .ic{font-size:21px;line-height:1;}
+      .tabbar a.active{color:var(--accent);}
+      .tabbar a:hover{color:var(--text);}
+      .wrap{padding-bottom:92px;}
+      .topbar .nav{bottom:auto;}
+    }
   </style>
 </head>
 <body>
@@ -128,5 +148,29 @@
     </div>
   </div>
   <div class="wrap">{% block content %}{% endblock %}</div>
+
+  <!-- mobile app bottom tab bar -->
+  <nav class="tabbar">
+    {% if user %}
+      <a href="/dashboard"><span class="ic">🏠</span>Home</a>
+      <a href="/directory"><span class="ic">🧭</span>Browse</a>
+      <a href="/ask"><span class="ic">💬</span>Ask</a>
+      <a href="/profile"><span class="ic">📸</span>Work</a>
+      <button onclick="document.getElementById('nav').classList.toggle('open')"><span class="ic">☰</span>More</button>
+    {% elif homeowner %}
+      <a href="/directory"><span class="ic">🧭</span>Browse</a>
+      <a href="/favorites"><span class="ic">❤️</span>Saved</a>
+      <button onclick="document.getElementById('nav').classList.toggle('open')"><span class="ic">☰</span>More</button>
+    {% else %}
+      <a href="/"><span class="ic">🏠</span>Home</a>
+      <a href="/directory"><span class="ic">🧭</span>Browse</a>
+      <a href="/join"><span class="ic">✨</span>Join</a>
+      <button onclick="document.getElementById('nav').classList.toggle('open')"><span class="ic">☰</span>More</button>
+    {% endif %}
+  </nav>
+  <script>
+    (function(){var p=location.pathname;document.querySelectorAll('.tabbar a').forEach(function(a){
+      if(a.getAttribute('href')===p)a.classList.add('active');});})();
+  </script>
 </body>
 </html>
