@@ -274,21 +274,39 @@ def submit_lead(slug):
     return render_template("lead_thanks.html", tenant=t)
 
 
+_LAST_SOCIAL_LOG = ["(no run yet — trigger a post first)"]
+
+
 @app.route("/tasks/social-post")
 def social_post_task():
     """Hit by a free external cron twice a day to auto-post to FB + IG.
-    Protected by CRON_SECRET so random visitors can't trigger posts."""
+    Protected by CRON_SECRET. Runs in the background so the web request never
+    times out; add &show=1 to read the result of the last run."""
+    global _LAST_SOCIAL_LOG
     secret = os.environ.get("CRON_SECRET", "").strip()
     if not secret or request.args.get("key", "") != secret:
         abort(403)
-    import traceback
+    if request.args.get("show"):
+        return app.response_class("\n".join(_LAST_SOCIAL_LOG), mimetype="text/plain")
+    import threading
 
     import social_bot
-    try:
-        return app.response_class("\n".join(social_bot.run()), mimetype="text/plain")
-    except Exception:
-        return app.response_class("BOT ERROR:\n" + traceback.format_exc(),
-                                  mimetype="text/plain", status=200)
+
+    def _work():
+        global _LAST_SOCIAL_LOG
+        try:
+            _LAST_SOCIAL_LOG = social_bot.run()
+        except Exception:
+            import traceback
+            _LAST_SOCIAL_LOG = ["CRASH:", traceback.format_exc()]
+        for ln in _LAST_SOCIAL_LOG:
+            print("[social]", ln)
+
+    threading.Thread(target=_work, daemon=True).start()
+    return app.response_class(
+        "Posting started. Wait about 60 seconds, then open this SAME link with "
+        "&show=1 added to the end to see the result.",
+        mimetype="text/plain")
 
 
 # Create tables on import so it works under gunicorn (production) too.
