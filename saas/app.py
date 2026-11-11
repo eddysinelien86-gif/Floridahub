@@ -33,7 +33,7 @@ SERVICES = ["Attic insulation", "Spray foam", "Crawlspace", "Energy audit", "Oth
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PRICE_ID = os.environ.get("STRIPE_PRICE_ID", "").strip()
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
-PLAN_PRICE_LABEL = os.environ.get("PLAN_PRICE_LABEL", "$49/mo")
+PLAN_PRICE_LABEL = os.environ.get("PLAN_PRICE_LABEL", "$49.99/mo")
 BILLING_ON = bool(STRIPE_SECRET_KEY and STRIPE_PRICE_ID)
 
 if STRIPE_SECRET_KEY:
