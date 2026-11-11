@@ -169,6 +169,11 @@ def home():
     return render_template("home.html", user=current_user())
 
 
+@app.route("/get")
+def get_app():
+    return render_template("get.html")
+
+
 @app.route("/manifest.json")
 def manifest():
     return {

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Get AI LeadPilot{% endblock %}
+{% block content %}
+<div style="text-align:center;padding:16px 0 4px;">
+  <img src="/static/logo.png" alt="AI LeadPilot" style="width:92px;height:92px;border-radius:22px;box-shadow:0 14px 34px -10px rgba(91,140,255,.6);">
+  <h1 style="margin-top:16px;">AI LeadPilot</h1>
+  <p class="muted" style="max-width:460px;margin:8px auto 0;">The app that finds you jobs, shows your work, posts your social media, and manages every lead — all in one place.</p>
+</div>
+
+<div class="card center" style="margin-top:24px;">
+  <a class="btn full" href="/signup">List your business — free →</a>
+  <a class="btn ghost full" href="/directory" style="margin-top:10px;">Browse local pros</a>
+  <p class="muted" style="font-size:13px;margin-top:12px;">Already have an account? <a href="/login">Log in</a></p>
+</div>
+
+<!-- Android install button (shows when supported) -->
+<div id="installWrap" class="card center" style="display:none;margin-top:16px;">
+  <h3>📲 Install the app</h3>
+  <button id="installBtn" class="full">Add to my phone</button>
+</div>
+
+<div class="card center" style="margin-top:16px;">
+  <h3>📱 Put it on your home screen</h3>
+  <p class="muted" style="font-size:14px;text-align:left;">
+    <b>iPhone (Safari):</b><br>
+    1. Tap the <b>Share</b> button (the box with ↑)<br>
+    2. Tap <b>“Add to Home Screen”</b><br>
+    3. Tap <b>Add</b> — AI LeadPilot is now an app icon.<br><br>
+    <b>Android (Chrome):</b><br>
+    1. Tap the <b>⋮</b> menu (top right)<br>
+    2. Tap <b>“Install app”</b> or <b>“Add to Home screen”</b><br>
+    3. Confirm — done.
+  </p>
+</div>
+
+<script>
+  let deferred;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferred = e;
+    document.getElementById('installWrap').style.display='block';
+  });
+  const btn=document.getElementById('installBtn');
+  if(btn){btn.addEventListener('click', async function(){
+    if(!deferred)return; deferred.prompt(); await deferred.userChoice; deferred=null;
+    document.getElementById('installWrap').style.display='none';
+  });}
+</script>
+{% endblock %}
