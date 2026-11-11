@@ -34,23 +34,31 @@
 
 <div class="card">
   <h2>Show your work</h2>
-  <p class="muted">Add photos of completed jobs — this is what makes homeowners choose you.</p>
-  <form method="post" action="/posts/add">
-    <label>Photo URL</label>
-    <input name="image_url" placeholder="https://…/job-photo.jpg" required>
-    <label>Caption</label>
-    <input name="caption" placeholder="Attic spray foam job in Davie, FL">
-    <button type="submit">Add photo</button>
-  </form>
-  <p class="muted" style="font-size:13px;margin-top:8px;">💡 Soon you'll upload straight from your phone — for now, paste an image link.</p>
+  <p class="muted">Post photos &amp; video of completed jobs — this is what makes homeowners choose you.</p>
+
+  <input id="capfield" placeholder="Caption (optional) — e.g. Attic spray foam in Davie, FL" style="margin-bottom:12px;">
+  <button type="button" class="btn" onclick="openCloudinary()">📷 Upload photo / video from your phone</button>
+
+  <details style="margin-top:14px;">
+    <summary class="muted" style="cursor:pointer;font-size:14px;">or paste an image link instead</summary>
+    <form method="post" action="/posts/add" style="margin-top:10px;">
+      <input name="image_url" placeholder="https://…/job-photo.jpg" required>
+      <input name="caption" placeholder="Caption">
+      <button type="submit" class="btn ghost">Add</button>
+    </form>
+  </details>
 
   {% if posts %}
   <div class="pgrid" style="margin-top:16px;">
     {% for p in posts %}
     <figure class="pitem">
+      {% if '/video/' in p['image_url'] or p['image_url'].endswith(('.mp4','.mov','.webm')) %}
+      <video src="{{ p['image_url'] }}" controls preload="metadata"></video>
+      {% else %}
       <img src="{{ p['image_url'] }}" alt="work photo" loading="lazy">
+      {% endif %}
       {% if p['caption'] %}<figcaption>{{ p['caption'] }}</figcaption>{% endif %}
-      <form method="post" action="/posts/delete" onsubmit="return confirm('Delete this photo?');">
+      <form method="post" action="/posts/delete" onsubmit="return confirm('Delete this?');">
         <input type="hidden" name="pid" value="{{ p['id'] }}">
         <button class="btn ghost" style="width:100%;border-radius:0;padding:8px;font-size:12px;margin:0;">Delete</button>
       </form>
@@ -60,10 +68,29 @@
   {% endif %}
 </div>
 
+<script src="https://upload-widget.cloudinary.com/latest/global/all.js"></script>
+<script>
+  var _cap = document.getElementById('capfield');
+  var _widget = cloudinary.createUploadWidget(
+    { cloudName: '{{ cloud }}', uploadPreset: '{{ preset }}',
+      sources: ['local', 'camera'], multiple: false, resourceType: 'auto',
+      clientAllowedFormats: ['image', 'video'], maxFileSize: 100000000 },
+    function (error, result) {
+      if (!error && result && result.event === 'success') {
+        var body = 'image_url=' + encodeURIComponent(result.info.secure_url) +
+                   '&caption=' + encodeURIComponent(_cap ? _cap.value : '');
+        fetch('/posts/add', { method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body })
+          .then(function () { location.reload(); });
+      }
+    });
+  function openCloudinary() { _widget.open(); }
+</script>
+
 <style>
   .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
   .pitem{margin:0;background:#0a1526;border:1px solid var(--line);border-radius:14px;overflow:hidden;}
-  .pitem img{width:100%;height:150px;object-fit:cover;display:block;}
+  .pitem img,.pitem video{width:100%;height:150px;object-fit:cover;display:block;background:#000;}
   .pitem figcaption{padding:8px 10px;font-size:13px;color:var(--muted);}
 </style>
 {% endblock %}

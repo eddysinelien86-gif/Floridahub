@@ -29,6 +29,11 @@ app.secret_key = os.environ.get("SAAS_SECRET", "dev-secret-change-me-in-producti
 
 SERVICES = ["Attic insulation", "Spray foam", "Crawlspace", "Energy audit", "Other"]
 
+# Cloudinary (photo/video uploads). Cloud name is public; uploads use an
+# UNSIGNED preset so no secret is ever needed in the app.
+CLOUDINARY_CLOUD = os.environ.get("CLOUDINARY_CLOUD_NAME", "bxnkdclt")
+CLOUDINARY_PRESET = os.environ.get("CLOUDINARY_UPLOAD_PRESET", "ai_leadpilot")
+
 # --- Stripe billing config ---------------------------------------------------
 # Keys come from the environment (Render env vars / secrets.env), never the repo.
 # Without them, the app runs fine in "trial" mode and the Upgrade button explains
@@ -411,7 +416,8 @@ def profile():
         return redirect(url_for("profile", ok=1))
     t = query_one("SELECT * FROM tenants WHERE id = ?", (u["tenant_id"],))
     posts = query("SELECT * FROM posts WHERE tenant_id = ? ORDER BY id DESC", (u["tenant_id"],))
-    return render_template("profile.html", user=u, t=t, posts=posts, ok=request.args.get("ok"))
+    return render_template("profile.html", user=u, t=t, posts=posts, ok=request.args.get("ok"),
+                           cloud=CLOUDINARY_CLOUD, preset=CLOUDINARY_PRESET)
 
 
 @app.route("/posts/add", methods=["POST"])
