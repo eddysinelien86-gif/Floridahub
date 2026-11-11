@@ -2,24 +2,23 @@
 
 Posts a fresh, AI-written promo to the Facebook Page and Instagram (feed +
 optional story), rotating the highlighted service each run, always ending with
-the free-quote link. Designed to run from a GitHub Actions schedule.
+the free-quote link.
 
-Caption is written by Claude (Anthropic). If no ANTHROPIC_API_KEY is set, a
-solid templated caption is used instead, so posting still works.
+Driven by the Flask app's /tasks/social-post endpoint (hit by a free external
+cron twice a day), so it runs on Render alongside everything else.
 
-Required env (set as GitHub Actions secrets):
-    META_PAGE_ACCESS_TOKEN   long-lived Facebook Page access token
-Optional env (sensible defaults baked in):
-    FB_PAGE_ID    default 100780832053532
-    IG_USER_ID    auto-discovered from the Page if omitted
-    LEAD_URL      the public quote-form link
-    IMAGE_URL     public image to attach (the flyer)
-    ANTHROPIC_API_KEY   for AI captions
-    POST_IG_STORY        "1" to also post the image to the IG story
-    GRAPH_VERSION        default v21.0
+Config comes from environment variables (set in Render):
+    META_PAGE_ACCESS_TOKEN   Facebook Page access token (required)
+    FB_PAGE_ID               default 100780832053532
+    IG_USER_ID               auto-discovered from the Page if omitted
+    LEAD_URL                 the public quote-form link (default baked in)
+    IMAGE_URL                public image to attach (default: hosted flyer)
+    ANTHROPIC_API_KEY        for AI captions (optional; template used otherwise)
+    POST_IG_STORY            "1" to also post the image to the IG story
+    GRAPH_VERSION            default v21.0
 
-Nothing is posted (clean exit) if META_PAGE_ACCESS_TOKEN is missing, so the
-scheduled job stays quiet until you connect Meta.
+run() returns a list of log lines (shown in the browser when testing); it never
+raises, so a bad token just reports the error instead of crashing the app.
 """
 
 from __future__ import annotations
@@ -27,22 +26,12 @@ from __future__ import annotations
 import datetime
 import json
 import os
-import sys
 import urllib.parse
 import urllib.request
 
-GRAPH = "https://graph.facebook.com/" + os.environ.get("GRAPH_VERSION", "v21.0")
-TOKEN = os.environ.get("META_PAGE_ACCESS_TOKEN", "").strip()
-FB_PAGE_ID = os.environ.get("FB_PAGE_ID", "100780832053532").strip()
-IG_USER_ID = os.environ.get("IG_USER_ID", "").strip()
-LEAD_URL = os.environ.get(
-    "LEAD_URL",
-    "https://elio-insulation-hub.onrender.com/t/in-out-insulation-and-spray-foam-of-broward-llc",
-).strip()
-IMAGE_URL = os.environ.get(
-    "IMAGE_URL", "https://elio-insulation-hub.onrender.com/static/flyer.png"
-).strip()
-POST_IG_STORY = os.environ.get("POST_IG_STORY", "").strip() in ("1", "true", "yes")
+DEFAULT_LEAD = ("https://elio-insulation-hub.onrender.com/t/"
+                "in-out-insulation-and-spray-foam-of-broward-llc")
+DEFAULT_IMAGE = "https://elio-insulation-hub.onrender.com/static/flyer.png"
 
 SERVICES = [
     ("attic insulation", "beat the Florida heat and lower your cooling bills"),
@@ -52,8 +41,19 @@ SERVICES = [
 ]
 
 
+def _cfg() -> dict:
+    return {
+        "graph": "https://graph.facebook.com/" + os.environ.get("GRAPH_VERSION", "v21.0"),
+        "token": os.environ.get("META_PAGE_ACCESS_TOKEN", "").strip(),
+        "page_id": os.environ.get("FB_PAGE_ID", "100780832053532").strip(),
+        "ig_id": os.environ.get("IG_USER_ID", "").strip(),
+        "lead": os.environ.get("LEAD_URL", DEFAULT_LEAD).strip(),
+        "image": os.environ.get("IMAGE_URL", DEFAULT_IMAGE).strip(),
+        "story": os.environ.get("POST_IG_STORY", "").strip() in ("1", "true", "yes"),
+    }
+
+
 def _service_today() -> tuple[str, str]:
-    # Rotate by day-of-year and AM/PM so the two daily posts differ.
     now = datetime.datetime.utcnow()
     idx = (now.timetuple().tm_yday * 2 + (1 if now.hour >= 18 else 0)) % len(SERVICES)
     return SERVICES[idx]
@@ -77,17 +77,13 @@ def _ai_caption(service: str, angle: str) -> str:
                     "free quote. Do NOT include the URL (it is appended separately). "
                     "Add 4-6 relevant hashtags on the last line. No preamble, no quotes."
                 ),
-                messages=[{
-                    "role": "user",
-                    "content": f"Today's focus: {service} — {angle}.",
-                }],
+                messages=[{"role": "user", "content": f"Today's focus: {service} — {angle}."}],
             )
             text = "".join(b.text for b in resp.content if b.type == "text").strip()
             if text:
                 return text
         except Exception as exc:
             print(f"[bot] AI caption failed, using template: {exc}")
-    # Fallback template
     return (
         f"🏠 Thinking about {service}? We can help you {angle}. "
         f"In & Out Insulation & Spray Foam of Broward serves all of Broward County — "
@@ -108,71 +104,67 @@ def _get(url: str) -> dict:
         return json.loads(r.read().decode())
 
 
-def discover_ig_id() -> str:
-    if IG_USER_ID:
-        return IG_USER_ID
+def _discover_ig(c: dict) -> str:
+    if c["ig_id"]:
+        return c["ig_id"]
     try:
-        q = urllib.parse.urlencode({"fields": "instagram_business_account", "access_token": TOKEN})
-        data = _get(f"{GRAPH}/{FB_PAGE_ID}?{q}")
+        q = urllib.parse.urlencode({"fields": "instagram_business_account", "access_token": c["token"]})
+        data = _get(f"{c['graph']}/{c['page_id']}?{q}")
         return (data.get("instagram_business_account") or {}).get("id", "")
     except Exception as exc:
-        print(f"[bot] could not discover IG account: {exc}")
-        return ""
+        return f""  # reported by caller
 
 
-def post_facebook(caption: str) -> None:
-    msg = f"{caption}\n\n➡️ Free quote: {LEAD_URL}"
-    try:
-        # Photo post (image + caption) gets more reach than a plain link post.
-        res = _post(f"{GRAPH}/{FB_PAGE_ID}/photos",
-                    {"url": IMAGE_URL, "caption": msg, "access_token": TOKEN})
-        print(f"[bot] facebook posted: {res}")
-    except Exception as exc:
-        print(f"[bot] facebook post FAILED: {exc}")
-
-
-def post_instagram(caption: str, ig_id: str) -> None:
-    if not ig_id:
-        print("[bot] no Instagram account id; skipping IG")
-        return
-    cap = f"{caption}\n\n➡️ Free quote — link in bio or: {LEAD_URL}"
-    try:
-        create = _post(f"{GRAPH}/{ig_id}/media",
-                       {"image_url": IMAGE_URL, "caption": cap, "access_token": TOKEN})
-        cid = create.get("id")
-        if not cid:
-            print(f"[bot] IG container failed: {create}")
-            return
-        pub = _post(f"{GRAPH}/{ig_id}/media_publish",
-                    {"creation_id": cid, "access_token": TOKEN})
-        print(f"[bot] instagram posted: {pub}")
-    except Exception as exc:
-        print(f"[bot] instagram post FAILED: {exc}")
-    if POST_IG_STORY:
-        try:
-            s = _post(f"{GRAPH}/{ig_id}/media",
-                      {"image_url": IMAGE_URL, "media_type": "STORIES", "access_token": TOKEN})
-            scid = s.get("id")
-            if scid:
-                sp = _post(f"{GRAPH}/{ig_id}/media_publish",
-                           {"creation_id": scid, "access_token": TOKEN})
-                print(f"[bot] instagram story posted: {sp}")
-        except Exception as exc:
-            print(f"[bot] instagram story FAILED: {exc}")
-
-
-def main() -> int:
-    if not TOKEN:
-        print("[bot] META_PAGE_ACCESS_TOKEN not set — nothing to post yet. "
-              "Add it as a GitHub secret to go live.")
-        return 0
+def run() -> list[str]:
+    log: list[str] = []
+    c = _cfg()
+    if not c["token"]:
+        log.append("META_PAGE_ACCESS_TOKEN not set — nothing posted. Add it in Render to go live.")
+        return log
     service, angle = _service_today()
     caption = _ai_caption(service, angle)
-    print(f"[bot] today's service: {service}\n[bot] caption:\n{caption}\n")
-    post_facebook(caption)
-    post_instagram(caption, discover_ig_id())
-    return 0
+    log.append(f"Service today: {service}")
+    log.append(f"Caption:\n{caption}")
+
+    # Facebook Page photo post
+    fb_msg = f"{caption}\n\n➡️ Free quote: {c['lead']}"
+    try:
+        res = _post(f"{c['graph']}/{c['page_id']}/photos",
+                    {"url": c["image"], "caption": fb_msg, "access_token": c["token"]})
+        log.append(f"✅ Facebook posted (post id: {res.get('post_id') or res.get('id')})")
+    except Exception as exc:
+        log.append(f"❌ Facebook failed: {exc}")
+
+    # Instagram feed post
+    ig_id = _discover_ig(c)
+    if not ig_id:
+        log.append("⚠️ No linked Instagram Business account found on the Page — skipped IG.")
+    else:
+        ig_cap = f"{caption}\n\n➡️ Free quote — link in bio or: {c['lead']}"
+        try:
+            create = _post(f"{c['graph']}/{ig_id}/media",
+                           {"image_url": c["image"], "caption": ig_cap, "access_token": c["token"]})
+            cid = create.get("id")
+            if not cid:
+                log.append(f"❌ Instagram container failed: {create}")
+            else:
+                pub = _post(f"{c['graph']}/{ig_id}/media_publish",
+                            {"creation_id": cid, "access_token": c["token"]})
+                log.append(f"✅ Instagram posted (media id: {pub.get('id')})")
+        except Exception as exc:
+            log.append(f"❌ Instagram failed: {exc}")
+        if c["story"]:
+            try:
+                s = _post(f"{c['graph']}/{ig_id}/media",
+                          {"image_url": c["image"], "media_type": "STORIES", "access_token": c["token"]})
+                if s.get("id"):
+                    sp = _post(f"{c['graph']}/{ig_id}/media_publish",
+                               {"creation_id": s["id"], "access_token": c["token"]})
+                    log.append(f"✅ Instagram story posted (id: {sp.get('id')})")
+            except Exception as exc:
+                log.append(f"❌ Instagram story failed: {exc}")
+    return log
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    print("\n".join(run()))

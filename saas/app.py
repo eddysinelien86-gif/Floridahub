@@ -274,6 +274,17 @@ def submit_lead(slug):
     return render_template("lead_thanks.html", tenant=t)
 
 
+@app.route("/tasks/social-post")
+def social_post_task():
+    """Hit by a free external cron twice a day to auto-post to FB + IG.
+    Protected by CRON_SECRET so random visitors can't trigger posts."""
+    secret = os.environ.get("CRON_SECRET", "").strip()
+    if not secret or request.args.get("key", "") != secret:
+        abort(403)
+    import social_bot
+    return app.response_class("\n".join(social_bot.run()), mimetype="text/plain")
+
+
 # Create tables on import so it works under gunicorn (production) too.
 init_schema()
 
