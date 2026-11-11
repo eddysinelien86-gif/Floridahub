@@ -26,6 +26,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import time
 import urllib.parse
 import urllib.request
 
@@ -150,9 +151,24 @@ def run() -> list[str]:
             if not cid:
                 log.append(f"❌ Instagram container failed: {create}")
             else:
-                pub = _post(f"{c['graph']}/{ig_id}/media_publish",
-                            {"creation_id": cid, "access_token": c["token"]})
-                log.append(f"✅ Instagram posted (media id: {pub.get('id')})")
+                # Wait for Instagram to finish downloading/processing the image.
+                ready = False
+                for _ in range(12):
+                    st = _get(f"{c['graph']}/{cid}?fields=status_code&access_token={c['token']}")
+                    code = st.get("status_code")
+                    if code == "FINISHED":
+                        ready = True
+                        break
+                    if code == "ERROR":
+                        log.append(f"❌ Instagram processing error: {st}")
+                        break
+                    time.sleep(3)
+                if ready:
+                    pub = _post(f"{c['graph']}/{ig_id}/media_publish",
+                                {"creation_id": cid, "access_token": c["token"]})
+                    log.append(f"✅ Instagram posted (media id: {pub.get('id')})")
+                else:
+                    log.append("❌ Instagram image did not finish processing in time.")
         except Exception as exc:
             log.append(f"❌ Instagram failed: {exc}")
         if c["story"]:
