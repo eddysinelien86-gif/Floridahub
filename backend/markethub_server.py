@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -24,6 +25,13 @@ HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
 WEB_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web"))
 
+# Optional login for the dashboard. Set MARKETHUB_PASSWORD to turn it on; the
+# public lead form (/lead, POST /api/lead) stays open so customers can submit.
+AUTH_USER = os.environ.get("MARKETHUB_USER", "admin")
+AUTH_PASS = os.environ.get("MARKETHUB_PASSWORD", "")
+PUBLIC_GET = {"/lead", "/health"}
+PUBLIC_POST = {"/api/lead"}
+
 
 class MarketHubHandler(BaseHTTPRequestHandler):
     def _send_json(self, payload: dict, status: int = 200) -> None:
@@ -34,6 +42,25 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
+
+    def _authed(self) -> bool:
+        if not AUTH_PASS:
+            return True  # login disabled when no password is set
+        header = self.headers.get("Authorization", "")
+        if header.startswith("Basic "):
+            try:
+                user, _, pw = base64.b64decode(header[6:]).decode("utf-8").partition(":")
+                if user == AUTH_USER and pw == AUTH_PASS:
+                    return True
+            except Exception:
+                pass
+        return False
+
+    def _require_auth(self) -> None:
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Insulation Lead Finders"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_OPTIONS(self) -> None:  # noqa: N802
         # CORS preflight for cross-origin POSTs from the web dashboard.
@@ -87,6 +114,9 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path not in PUBLIC_GET and not self._authed():
+            self._require_auth()
+            return
         if path == "/api/qr":
             query = parse_qs(urlparse(self.path).query)
             self._serve_qr(query.get("data", [""])[0])
@@ -120,6 +150,9 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path not in PUBLIC_POST and not self._authed():
+            self._require_auth()
+            return
         content_length = int(self.headers.get("Content-Length", "0"))
         raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
         data = json.loads(raw_body or "{}")
