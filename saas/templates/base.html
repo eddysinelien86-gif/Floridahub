@@ -37,13 +37,23 @@
 
     /* top bar */
     .topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
-      padding:14px 22px;border-bottom:1px solid var(--line);
-      background:rgba(9,14,26,.72);backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);}
-    .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:18px;letter-spacing:-.02em;}
-    .logo{width:38px;height:38px;border-radius:11px;display:block;object-fit:cover;box-shadow:0 6px 16px -4px rgba(91,140,255,.5);}
-    .nav{display:flex;align-items:center;flex-wrap:wrap;gap:2px;}
-    .nav a{padding:8px 13px;border-radius:10px;color:var(--muted);font-weight:600;font-size:14.5px;transition:.15s;}
+      padding:12px 18px;border-bottom:1px solid var(--line);
+      background:rgba(9,14,26,.82);backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.02em;white-space:nowrap;}
+    .logo{width:36px;height:36px;border-radius:11px;display:block;object-fit:cover;box-shadow:0 6px 16px -4px rgba(91,140,255,.5);flex:none;}
+    .nav{display:flex;align-items:center;gap:2px;}
+    .nav a{padding:8px 13px;border-radius:10px;color:var(--muted);font-weight:600;font-size:14.5px;transition:.15s;white-space:nowrap;}
     .nav a:hover{color:var(--text);background:rgba(130,160,210,.1);}
+    .menu-btn{display:none;background:rgba(130,160,210,.1);border:1px solid var(--line2);border-radius:10px;
+      width:42px;height:42px;padding:0;margin:0;align-items:center;justify-content:center;font-size:20px;box-shadow:none;}
+    @media (max-width:720px){
+      .menu-btn{display:inline-flex;}
+      .nav{position:absolute;top:60px;right:12px;left:12px;flex-direction:column;align-items:stretch;gap:4px;
+        background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:10px;
+        box-shadow:var(--shadow);display:none;}
+      .nav.open{display:flex;}
+      .nav a{padding:12px 14px;font-size:16px;border-radius:10px;}
+    }
 
     .wrap{max-width:1040px;margin:0 auto;padding:30px 20px 60px;}
 
@@ -105,7 +115,8 @@
 <body>
   <div class="topbar">
     <a class="brand" href="/" style="color:inherit;"><img class="logo" src="/static/logo.png" alt="AI LeadPilot logo" /> AI LeadPilot</a>
-    <div class="nav">
+    <button class="menu-btn" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+    <div class="nav" id="nav">
       <a href="/directory">Directory</a>
       {% if user %}
         <a href="/dashboard">Dashboard</a><a href="/profile">Profile</a><a href="/team">Team</a><a href="/logout">Log out</a>
