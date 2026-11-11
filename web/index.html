@@ -233,9 +233,9 @@
     </div>
 
     <script>
-      // On the Pi itself you can use "http://localhost:8000".
-      // From a phone on the same Wi-Fi, use the Pi's IP.
-      const API_BASE = "http://192.168.1.207:8000";
+      // Served by the backend itself, so talk to the same origin (relative URLs).
+      // This works whether you open http://localhost:8000 or http://<pi-ip>:8000.
+      const API_BASE = "";
       const $ = (id) => document.getElementById(id);
 
       // tab switching

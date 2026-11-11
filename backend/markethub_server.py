@@ -11,6 +11,7 @@ from database import fetch_dashboard_payload, init_db
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
+WEB_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web"))
 
 
 class MarketHubHandler(BaseHTTPRequestHandler):
@@ -32,6 +33,20 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
+    def _serve_web(self, filename: str, content_type: str) -> None:
+        full = os.path.normpath(os.path.join(WEB_DIR, filename))
+        if not full.startswith(WEB_DIR) or not os.path.isfile(full):
+            self._send_json({"error": "not_found"}, status=404)
+            return
+        with open(full, "rb") as f:
+            body = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
         if path == "/health":
@@ -40,6 +55,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
         if path == "/api/dashboard":
             self._send_json(fetch_dashboard_payload())
+            return
+
+        if path in ("/", "/index.html"):
+            self._serve_web("index.html", "text/html; charset=utf-8")
             return
 
         self._send_json({"error": "not_found"}, status=404)
