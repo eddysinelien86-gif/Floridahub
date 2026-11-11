@@ -1,4 +1,4 @@
-"""Per-company AI content generation for the MarketHub SaaS.
+"""Per-company AI content generation for the LeadPilot SaaS.
 
 generate(prompt, brand) writes content in the voice of each tenant's business.
 Uses Claude when ANTHROPIC_API_KEY is set, otherwise returns sample text so the
