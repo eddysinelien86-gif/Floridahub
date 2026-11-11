@@ -5,6 +5,10 @@
   <h1>Create your account</h1>
   <p class="muted">Save your favorite pros and track your quotes.</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  {% if google_enabled %}
+  <a class="btn ghost full" href="/auth/google" style="margin-bottom:6px;">Continue with Google</a>
+  <div class="muted" style="font-size:12px;margin:8px 0;">— or —</div>
+  {% endif %}
   <form method="post">
     <label>Name</label>
     <input name="name" placeholder="Your name">

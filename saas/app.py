@@ -34,6 +34,28 @@ SERVICES = ["Attic insulation", "Spray foam", "Crawlspace", "Energy audit", "Oth
 CLOUDINARY_CLOUD = os.environ.get("CLOUDINARY_CLOUD_NAME", "bxnkdclt")
 CLOUDINARY_PRESET = os.environ.get("CLOUDINARY_UPLOAD_PRESET", "ai_leadpilot")
 
+# Google social login (optional). Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET
+# in Render to enable the "Continue with Google" button.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+GOOGLE_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+_oauth = None
+if GOOGLE_ENABLED:
+    try:
+        from authlib.integrations.flask_client import OAuth
+
+        _oauth = OAuth(app)
+        _oauth.register(
+            name="google",
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+            client_kwargs={"scope": "openid email profile"},
+        )
+    except Exception as exc:  # pragma: no cover
+        print(f"[google] oauth init failed: {exc}")
+        GOOGLE_ENABLED = False
+
 # --- Stripe billing config ---------------------------------------------------
 # Keys come from the environment (Render env vars / secrets.env), never the repo.
 # Without them, the app runs fine in "trial" mode and the Upgrade button explains
@@ -105,7 +127,41 @@ def current_homeowner():
 
 @app.context_processor
 def _inject_homeowner():
-    return {"homeowner": current_homeowner()}
+    return {"homeowner": current_homeowner(), "google_enabled": GOOGLE_ENABLED}
+
+
+@app.route("/auth/google")
+def auth_google():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    base = (os.environ.get("APP_URL", "").strip() or request.host_url).rstrip("/")
+    if base.startswith("http://"):
+        base = "https://" + base[len("http://"):]
+    return _oauth.google.authorize_redirect(base + "/auth/google/callback")
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    if not GOOGLE_ENABLED:
+        abort(404)
+    try:
+        token = _oauth.google.authorize_access_token()
+        info = token.get("userinfo") or {}
+        email = (info.get("email") or "").strip().lower()
+        name = info.get("name", "")
+    except Exception as exc:
+        print(f"[google] callback failed: {exc}")
+        return redirect(url_for("enter"))
+    if not email:
+        return redirect(url_for("enter"))
+    h = query_one("SELECT id FROM homeowners WHERE email = ?", (email,))
+    if h:
+        hid = h["id"]
+    else:
+        hid = execute("INSERT INTO homeowners (name, email, password_hash) VALUES (?, ?, ?)",
+                      (name, email, generate_password_hash(os.urandom(16).hex())), returning=True)
+    session["hid"] = hid
+    return redirect(url_for("directory"))
 
 
 @app.route("/")
