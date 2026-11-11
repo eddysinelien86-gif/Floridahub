@@ -10,7 +10,7 @@ from __future__ import annotations
 import random
 
 from ai import generate
-from database import add_draft, count_drafts
+from database import add_draft, count_drafts, reviews_needing_reply, set_review_reply
 
 TOPICS = [
     "attic insulation saves on winter heating bills",
@@ -43,3 +43,20 @@ def run_content_agent(n: int = 3) -> dict:
             add_draft(text, topic)
             created.append({"topic": topic, "text": text, "source": res.get("source")})
     return {"created": created, "total_drafts": count_drafts()}
+
+
+def run_reply_agent() -> dict:
+    """Draft a friendly reply for every review that doesn't have one yet."""
+    pending = reviews_needing_reply()
+    replied = []
+    for rv in pending:
+        prompt = (
+            f"review: Write a short, warm reply to this {rv['rating']}-star review "
+            f"from {rv['author']} on {rv['platform']}: \"{rv['comment']}\""
+        )
+        res = generate(prompt)
+        text = res.get("text", "").strip()
+        if text:
+            set_review_reply(rv["id"], text)
+            replied.append({"author": rv["author"], "reply": text, "source": res.get("source")})
+    return {"replied": replied, "count": len(replied)}

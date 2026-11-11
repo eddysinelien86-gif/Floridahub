@@ -221,12 +221,19 @@
           <!-- REVIEWS -->
           <section class="tab" id="tab-reviews">
             <div class="section-title">Recent reviews</div>
+            <div class="btnrow"><button class="primary" onclick="runReplyAgent()">⭐ Draft replies</button></div>
+            <div id="replyStatus" style="color:var(--muted);font-size:13px;margin-bottom:8px;"></div>
             <div class="tile list" id="reviews"></div>
           </section>
 
           <!-- CUSTOMERS -->
           <section class="tab" id="tab-customers">
-            <div class="section-title">Leads & customers</div>
+            <div class="section-title">Lead capture</div>
+            <div class="tile" style="margin-bottom:14px;">
+              <div style="color:var(--muted);font-size:13px;margin-bottom:6px;">Share this link (or a QR of it). Every submission adds a hot lead automatically:</div>
+              <div id="leadLink" style="font-size:16px;font-weight:700;color:var(--accent-2);word-break:break-all;"></div>
+            </div>
+            <div class="section-title">Leads &amp; customers</div>
             <div class="tile list" id="customers"></div>
           </section>
 
@@ -288,10 +295,19 @@
           $('social').innerHTML = social.map(x => tile(x.label, x.value, x.change)).join('');
           $('analytics').innerHTML = analytics.map(x => tile(x.label, x.value, x.change)).join('');
 
-          $('reviews').innerHTML = (d.reviews || []).map(x => `
-            <div class="row"><div><div>${x.author} <span class="tag">${x.platform}</span></div>
-            <div class="sub">${x.comment}</div></div><div class="stars">★ ${x.rating}</div></div>`).join('')
-            || '<div class="row"><div class="sub">No reviews yet.</div></div>';
+          REVIEWS = d.reviews || [];
+          $('reviews').innerHTML = REVIEWS.map(x => `
+            <div class="row">
+              <div style="flex:1">
+                <div>${esc(x.author)} <span class="tag">${esc(x.platform)}</span></div>
+                <div class="sub">${esc(x.comment)}</div>
+                ${x.reply ? `<div class="sub" style="color:var(--good);margin-top:6px;">↪ ${esc(x.reply)}</div>` : ''}
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="stars">★ ${x.rating}</div>
+                ${x.reply ? `<button onclick="copyReply(${x.id})">📋</button>` : ''}
+              </div>
+            </div>`).join('') || '<div class="row"><div class="sub">No reviews yet.</div></div>';
 
           $('customers').innerHTML = (d.customers || []).map(x => `
             <div class="row"><div><div>${x.name}</div>
@@ -322,6 +338,7 @@
 
       // ---- Content Agent / drafts ----
       let DRAFTS = [];
+      let REVIEWS = [];
       const esc = (s) => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
       function renderDrafts() {
         const el = $('draftList');
@@ -351,6 +368,19 @@
           loadDrafts(); loadDashboard();
         } catch (e) { s.textContent = 'Could not reach the agent.'; }
       }
+
+      // ---- Reply Agent + Lead capture ----
+      function copyReply(id) { const r = REVIEWS.find(x => x.id === id); if (r && r.reply) navigator.clipboard?.writeText(r.reply); }
+      async function runReplyAgent() {
+        const s = $('replyStatus'); s.textContent = '⭐ Agent is drafting replies…';
+        try {
+          const r = await fetch(API_BASE + '/api/agents/replies', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+          const d = await r.json();
+          s.textContent = `Done — drafted ${d.count} repl${d.count === 1 ? 'y' : 'ies'}.`;
+          loadDashboard();
+        } catch (e) { s.textContent = 'Could not reach the agent.'; }
+      }
+      $('leadLink').textContent = (API_BASE || location.origin) + '/lead';
 
       $('setApi').textContent = API_BASE;
       const clock = () => $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});

@@ -41,7 +41,8 @@ def init_db() -> None:
             rating REAL NOT NULL,
             author TEXT NOT NULL,
             comment TEXT NOT NULL,
-            new_alert INTEGER DEFAULT 0
+            new_alert INTEGER DEFAULT 0,
+            reply TEXT DEFAULT ''
         );
 
         CREATE TABLE IF NOT EXISTS customers (
@@ -83,6 +84,12 @@ def init_db() -> None:
             ("social", "Website form", "61", "+15%"),
         ],
     )
+
+    # Migrate older DBs that predate the reply column.
+    try:
+        conn.execute("ALTER TABLE reviews ADD COLUMN reply TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
 
     conn.execute("DELETE FROM reviews")
     conn.executemany(
@@ -149,11 +156,44 @@ def delete_draft(draft_id: int) -> None:
     conn.close()
 
 
+# ---------- reviews (used by the Reply Agent) ----------
+def reviews_needing_reply() -> list[dict[str, Any]]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, author, platform, rating, comment FROM reviews "
+        "WHERE reply IS NULL OR reply = '' ORDER BY id"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def set_review_reply(review_id: int, text: str) -> None:
+    conn = get_connection()
+    conn.execute("UPDATE reviews SET reply = ? WHERE id = ?", (text, review_id))
+    conn.commit()
+    conn.close()
+
+
+# ---------- leads (used by the Lead-Capture Agent) ----------
+def add_lead(name: str, contact: str, service: str) -> int:
+    """Add an inbound lead and bump the hot-leads counter."""
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO customers (name, company, contact, status) VALUES (?, ?, ?, ?)",
+        (name or "New lead", service or "Insulation", contact or "", "Hot lead"),
+    )
+    conn.execute("UPDATE profiles SET hot_leads = hot_leads + 1 WHERE id = 1")
+    conn.commit()
+    hot = conn.execute("SELECT hot_leads FROM profiles WHERE id = 1").fetchone()["hot_leads"]
+    conn.close()
+    return int(hot)
+
+
 def fetch_dashboard_payload() -> dict[str, Any]:
     conn = get_connection()
     profile = conn.execute("SELECT * FROM profiles WHERE id = 1").fetchone()
     metrics = conn.execute("SELECT category, label, value, change FROM metrics ORDER BY id").fetchall()
-    reviews = conn.execute("SELECT platform, rating, author, comment, new_alert FROM reviews ORDER BY id").fetchall()
+    reviews = conn.execute("SELECT id, platform, rating, author, comment, new_alert, reply FROM reviews ORDER BY id").fetchall()
     customers = conn.execute("SELECT name, company, contact, status FROM customers ORDER BY id").fetchall()
     conn.close()
 
@@ -177,8 +217,8 @@ def fetch_dashboard_payload() -> dict[str, Any]:
         "drafts": drafts,
         "reviews": [
             {
-                "platform": r["platform"], "rating": r["rating"], "author": r["author"],
-                "comment": r["comment"], "new_alert": bool(r["new_alert"]),
+                "id": r["id"], "platform": r["platform"], "rating": r["rating"], "author": r["author"],
+                "comment": r["comment"], "new_alert": bool(r["new_alert"]), "reply": r["reply"] or "",
             }
             for r in reviews
         ],

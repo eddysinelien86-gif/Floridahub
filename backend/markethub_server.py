@@ -6,9 +6,13 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-from agents import run_content_agent
+import threading
+import time
+
+from agents import run_content_agent, run_reply_agent
 from ai import generate as ai_generate
 from database import (
+    add_lead,
     delete_draft,
     fetch_dashboard_payload,
     fetch_leadcount,
@@ -76,6 +80,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             self._serve_web("index.html", "text/html; charset=utf-8")
             return
 
+        if path == "/lead":
+            self._serve_web("lead.html", "text/html; charset=utf-8")
+            return
+
         self._send_json({"error": "not_found"}, status=404)
 
     def do_POST(self) -> None:  # noqa: N802
@@ -94,6 +102,21 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             self._send_json(run_content_agent(data.get("n", 3)))
             return
 
+        if path == "/api/agents/replies":
+            # Reply Agent: draft replies for reviews without one.
+            self._send_json(run_reply_agent())
+            return
+
+        if path == "/api/lead":
+            # Lead-Capture Agent: a new inbound lead bumps hot leads.
+            hot = add_lead(
+                str(data.get("name", "")).strip(),
+                str(data.get("contact", "")).strip(),
+                str(data.get("service", "")).strip(),
+            )
+            self._send_json({"ok": True, "hot_leads": hot})
+            return
+
         if path == "/api/drafts/delete":
             delete_draft(int(data.get("id", 0)))
             self._send_json({"ok": True})
@@ -105,8 +128,27 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         return
 
 
+def _scheduler_loop() -> None:
+    """Scheduler Agent: periodically run the Content Agent on its own.
+    Set MARKETHUB_AUTODRAFT_HOURS=0 to turn it off (default: every 24h)."""
+    try:
+        hours = float(os.environ.get("MARKETHUB_AUTODRAFT_HOURS", "24"))
+    except ValueError:
+        hours = 24.0
+    if hours <= 0:
+        return
+    while True:
+        time.sleep(hours * 3600)
+        try:
+            run_content_agent(3)
+            print("[scheduler] Content Agent ran — fresh drafts added.")
+        except Exception as exc:  # keep the server alive no matter what
+            print(f"[scheduler] skipped: {exc}")
+
+
 def run_server() -> None:
     init_db()
+    threading.Thread(target=_scheduler_loop, daemon=True).start()
     server = ThreadingHTTPServer((HOST, PORT), MarketHubHandler)
     print(f"MarketHub backend listening on http://{HOST}:{PORT}")
     server.serve_forever()

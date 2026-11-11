@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Free Insulation Quote — Insulation Lead Finders</title>
+    <style>
+      :root { --bg:#060d1a; --panel:#0e1a2e; --line:rgba(96,165,250,0.25); --accent:#3b82f6; --accent2:#8b5cf6; --text:#eaf3ff; --muted:#8ba3c7; --good:#34d399; }
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; font-family:"Segoe UI",Inter,system-ui,Arial,sans-serif;
+        background: radial-gradient(900px 500px at 50% -10%, #15294a 0%, var(--bg) 60%); color:var(--text);
+        display:flex; align-items:center; justify-content:center; padding:20px; }
+      .card { width:100%; max-width:440px; background:var(--panel); border:1px solid var(--line);
+        border-radius:22px; padding:26px; box-shadow:0 24px 50px rgba(2,6,23,.45); }
+      .logo { width:52px; height:52px; border-radius:16px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+        display:grid; place-items:center; font-weight:900; font-size:20px; margin-bottom:14px; }
+      h1 { margin:0 0 6px; font-size:23px; }
+      p.sub { margin:0 0 20px; color:var(--muted); }
+      label { display:block; font-size:13px; color:var(--muted); margin:14px 0 6px; }
+      input, select { width:100%; padding:14px; font-size:16px; border-radius:12px; background:#0a1526;
+        color:var(--text); border:1px solid var(--line); font-family:inherit; }
+      button { width:100%; margin-top:22px; padding:16px; font-size:17px; font-weight:800; color:#fff;
+        border:none; border-radius:14px; background:linear-gradient(135deg,var(--accent),var(--accent2)); cursor:pointer; }
+      button:active { transform:translateY(1px); }
+      .done { text-align:center; padding:20px 0; }
+      .done .big { font-size:42px; }
+      .hidden { display:none; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div id="form">
+        <div class="logo">IL</div>
+        <h1>Free Insulation Quote</h1>
+        <p class="sub">Tell us a bit about your home — we'll reach out with a free inspection and quote.</p>
+        <label>Your name</label>
+        <input id="name" placeholder="Jane Smith" />
+        <label>Phone or email</label>
+        <input id="contact" placeholder="(555) 123-4567" />
+        <label>What do you need?</label>
+        <select id="service">
+          <option>Attic insulation</option>
+          <option>Spray foam</option>
+          <option>Crawlspace insulation</option>
+          <option>Energy audit / inspection</option>
+          <option>Not sure yet</option>
+        </select>
+        <button onclick="submitLead()">Get my free quote →</button>
+      </div>
+      <div id="thanks" class="done hidden">
+        <div class="big">✅</div>
+        <h1>Thank you!</h1>
+        <p class="sub">We got your request and we'll be in touch shortly.</p>
+      </div>
+    </div>
+
+    <script>
+      async function submitLead() {
+        const name = document.getElementById('name').value.trim();
+        const contact = document.getElementById('contact').value.trim();
+        const service = document.getElementById('service').value;
+        if (!contact) { alert('Please add a phone or email so we can reach you.'); return; }
+        try {
+          await fetch('/api/lead', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, contact, service }),
+          });
+        } catch (e) { /* still thank them */ }
+        document.getElementById('form').classList.add('hidden');
+        document.getElementById('thanks').classList.remove('hidden');
+      }
+    </script>
+  </body>
+</html>
