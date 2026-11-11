@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import threading
 import time
@@ -58,8 +58,40 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _serve_qr(self, data: str) -> None:
+        import qrcode
+
+        qr = qrcode.QRCode(border=2)
+        qr.add_data(data or "/lead")
+        qr.make(fit=True)
+        matrix = qr.get_matrix()
+        n = len(matrix)
+        scale = 8
+        rects = []
+        for y, row in enumerate(matrix):
+            for x, filled in enumerate(row):
+                if filled:
+                    rects.append(f'<rect x="{x*scale}" y="{y*scale}" width="{scale}" height="{scale}"/>')
+        svg = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{n*scale}" height="{n*scale}" '
+            f'viewBox="0 0 {n*scale} {n*scale}"><rect width="100%" height="100%" fill="#fff"/>'
+            f'<g fill="#000">{"".join(rects)}</g></svg>'
+        )
+        body = svg.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "image/svg+xml")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path == "/api/qr":
+            query = parse_qs(urlparse(self.path).query)
+            self._serve_qr(query.get("data", [""])[0])
+            return
+
         if path == "/health":
             self._send_json({"status": "ok", "service": "MarketHub"})
             return

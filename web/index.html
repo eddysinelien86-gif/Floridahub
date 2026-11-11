@@ -230,8 +230,11 @@
           <section class="tab" id="tab-customers">
             <div class="section-title">Lead capture</div>
             <div class="tile" style="margin-bottom:14px;">
-              <div style="color:var(--muted);font-size:13px;margin-bottom:6px;">Share this link (or a QR of it). Every submission adds a hot lead automatically:</div>
-              <div id="leadLink" style="font-size:16px;font-weight:700;color:var(--accent-2);word-break:break-all;"></div>
+              <div style="color:var(--muted);font-size:13px;margin-bottom:8px;">Put this link or QR on flyers, your truck, Facebook. Every submission adds a hot lead automatically.</div>
+              <input id="publicUrl" placeholder="(optional) paste your public URL — e.g. https://xxxx.trycloudflare.com" style="width:100%;padding:12px;border-radius:10px;background:#0a1526;color:var(--text);border:1px solid var(--line);font-size:14px;margin-bottom:8px;" />
+              <div class="btnrow"><button class="primary" onclick="makeQR()">Show QR + link</button></div>
+              <div id="leadLink" style="font-size:16px;font-weight:700;color:var(--accent-2);word-break:break-all;margin:8px 0;"></div>
+              <img id="qrimg" alt="QR to the lead form" style="display:none;width:200px;height:200px;background:#fff;border-radius:12px;padding:8px;" />
             </div>
             <div class="section-title">Leads &amp; customers</div>
             <div class="tile list" id="customers"></div>
@@ -380,7 +383,18 @@
           loadDashboard();
         } catch (e) { s.textContent = 'Could not reach the agent.'; }
       }
-      $('leadLink').textContent = (API_BASE || location.origin) + '/lead';
+      function leadUrl() {
+        const base = ($('publicUrl').value.trim() || API_BASE || location.origin).replace(/\/+$/, '');
+        return base + '/lead';
+      }
+      function makeQR() {
+        const url = leadUrl();
+        $('leadLink').textContent = url;
+        const img = $('qrimg');
+        img.src = (API_BASE || '') + '/api/qr?data=' + encodeURIComponent(url);
+        img.style.display = 'block';
+      }
+      makeQR();  // show the local link + QR by default
 
       $('setApi').textContent = API_BASE;
       const clock = () => $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
