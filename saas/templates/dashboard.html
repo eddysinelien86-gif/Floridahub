@@ -77,7 +77,10 @@
       <td>{{ l['name'] or '—' }}</td>
       <td>{{ l['contact'] or '—' }}</td>
       <td>{{ l['service'] or '—' }}</td>
-      <td><span class="tag">{{ l['status'] }}</span></td>
+      <td>
+        <span class="tag">{{ l['status'] }}</span>
+        {% if l['is_old'] %}<span class="tag" style="background:rgba(148,163,184,.22);color:#94a3b8;margin-left:4px;">Old</span>{% endif %}
+      </td>
       <td class="muted">{{ (l['created_at']|string)[:16] }}</td>
     </tr>
     {% endfor %}

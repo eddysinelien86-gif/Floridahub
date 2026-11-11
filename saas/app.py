@@ -12,6 +12,7 @@ Run:
 
 from __future__ import annotations
 
+import datetime
 import os
 import re
 import threading
@@ -46,6 +47,22 @@ if STRIPE_SECRET_KEY:
 
 def _base_url() -> str:
     return (os.environ.get("APP_URL", "").strip() or request.host_url).rstrip("/")
+
+
+def _lead_is_old(created_at, days: int = 30) -> bool:
+    """True if a lead's created_at is more than `days` ago. Handles both the
+    Postgres datetime and the SQLite text timestamp formats."""
+    if not created_at:
+        return False
+    try:
+        if isinstance(created_at, datetime.datetime):
+            dt = created_at
+        else:
+            s = str(created_at).replace("T", " ").split(".")[0].strip()
+            dt = datetime.datetime.fromisoformat(s)
+        return (datetime.datetime.utcnow() - dt).days >= days
+    except Exception:
+        return False
 
 
 def slugify(name: str) -> str:
@@ -131,6 +148,9 @@ def dashboard():
         "WHERE tenant_id = ? ORDER BY id DESC",
         (u["tenant_id"],),
     )
+    # Tag leads older than 30 days as "Old" (display only — nothing is deleted).
+    for lead in leads:
+        lead["is_old"] = _lead_is_old(lead.get("created_at"))
     form_url = request.host_url.rstrip("/") + url_for("public_form", slug=u["tslug"])
     return render_template(
         "dashboard.html", user=u, leads=leads, form_url=form_url,
