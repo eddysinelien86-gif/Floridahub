@@ -144,6 +144,7 @@
         <div class="brand"><div class="logo">IL</div><small>LEAD&nbsp;FINDERS</small></div>
         <button class="navbtn active" data-tab="home"><span class="ico">🏠</span>Home</button>
         <button class="navbtn" data-tab="ai"><span class="ico">🤖</span>AI</button>
+        <button class="navbtn" data-tab="drafts"><span class="ico">📝</span>Drafts</button>
         <button class="navbtn" data-tab="social"><span class="ico">📣</span>Sources</button>
         <button class="navbtn" data-tab="reviews"><span class="ico">⭐</span>Reviews</button>
         <button class="navbtn" data-tab="customers"><span class="ico">👥</span>Leads</button>
@@ -193,6 +194,20 @@
               <div class="output" id="aiOut">Pick a type and I'll write it.</div>
               <button class="copybtn" onclick="copyOut('aiOut')">📋 Copy</button>
             </div>
+          </section>
+
+          <!-- DRAFTS (Content Agent) -->
+          <section class="tab" id="tab-drafts">
+            <div class="section-title">Content Agent</div>
+            <div class="ai-wrap">
+              <p style="color:var(--muted);margin:0 0 10px;">The agent writes ready-to-post insulation drafts for you. Tap to generate a fresh batch.</p>
+              <div class="btnrow">
+                <button class="primary" onclick="runAgent(3)">🤖 Write 3 new posts</button>
+                <button onclick="runAgent(6)">Write 6</button>
+              </div>
+              <div id="agentStatus" style="color:var(--muted);font-size:13px;margin-bottom:8px;"></div>
+            </div>
+            <div class="tile list" id="draftList" style="margin-top:6px;"></div>
           </section>
 
           <!-- SOCIAL -->
@@ -305,10 +320,43 @@
         navigator.clipboard?.writeText(t);
       }
 
+      // ---- Content Agent / drafts ----
+      let DRAFTS = [];
+      const esc = (s) => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      function renderDrafts() {
+        const el = $('draftList');
+        if (!DRAFTS.length) { el.innerHTML = '<div class="row"><div class="sub">No drafts yet — tap “Write 3 new posts”.</div></div>'; return; }
+        el.innerHTML = DRAFTS.map(d => `
+          <div class="row">
+            <div style="flex:1"><div>${esc(d.text)}</div><div class="sub">${esc(d.topic || '')}</div></div>
+            <div style="display:flex;gap:6px;align-self:center">
+              <button onclick="copyDraft(${d.id})">📋</button>
+              <button onclick="delDraft(${d.id})">🗑</button>
+            </div>
+          </div>`).join('');
+      }
+      async function loadDrafts() {
+        try { const r = await fetch(API_BASE + '/api/drafts'); DRAFTS = (await r.json()).drafts || []; renderDrafts(); } catch (e) {}
+      }
+      function copyDraft(id) { const d = DRAFTS.find(x => x.id === id); if (d) navigator.clipboard?.writeText(d.text); }
+      async function delDraft(id) {
+        try { await fetch(API_BASE + '/api/drafts/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id }) }); loadDrafts(); loadDashboard(); } catch (e) {}
+      }
+      async function runAgent(n) {
+        const s = $('agentStatus'); s.textContent = '🤖 Agent is writing… (a few seconds)';
+        try {
+          const r = await fetch(API_BASE + '/api/agents/content', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ n }) });
+          const d = await r.json();
+          s.textContent = `Done — ${(d.created || []).length} new drafts (${d.total_drafts} total).`;
+          loadDrafts(); loadDashboard();
+        } catch (e) { s.textContent = 'Could not reach the agent.'; }
+      }
+
       $('setApi').textContent = API_BASE;
       const clock = () => $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       clock(); setInterval(clock, 1000);
       loadDashboard(); setInterval(loadDashboard, 15000);
+      loadDrafts();
     </script>
   </body>
 </html>

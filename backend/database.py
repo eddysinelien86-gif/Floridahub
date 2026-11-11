@@ -24,8 +24,7 @@ def init_db() -> None:
             tagline TEXT NOT NULL,
             wifi_ssid TEXT,
             wifi_password TEXT,
-            hot_leads INTEGER DEFAULT 0,
-            drafts INTEGER DEFAULT 0
+            hot_leads INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS metrics (
@@ -52,26 +51,30 @@ def init_db() -> None:
             contact TEXT NOT NULL,
             status TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS drafts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic TEXT,
+            text TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
         """
     )
 
-    # Business profile. Change these to your real business any time (or via the
-    # dashboard later). hot_leads / drafts feed the ESP32 lead-finder box.
     conn.execute("DELETE FROM profiles")
     conn.execute(
-        "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads, drafts) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
         (1, "Insulation Lead Finders", "Spray foam & insulation — lead generation",
-         "MarketHub-Setup", "markethub123", 15, 24),
+         "MarketHub-Setup", "markethub123", 15),
     )
 
-    # Pipeline overview (shown on Home) + lead sources (shown under Sources).
     conn.execute("DELETE FROM metrics")
     conn.executemany(
         "INSERT INTO metrics (category, label, value, change) VALUES (?, ?, ?, ?)",
         [
             ("analytics", "Hot leads", "15", "+3"),
-            ("analytics", "Drafts", "24", "+5"),
+            ("analytics", "Drafts", "0", ""),   # value is replaced live with the real count
             ("analytics", "Appointments", "9", "+2"),
             ("analytics", "Jobs booked", "$42.6K", "+18%"),
             ("social", "Facebook leads", "142", "+21%"),
@@ -100,6 +103,48 @@ def init_db() -> None:
         ],
     )
 
+    # Seed a few starter drafts so the box shows a count before the agent runs.
+    if conn.execute("SELECT COUNT(*) AS c FROM drafts").fetchone()["c"] == 0:
+        conn.executemany(
+            "INSERT INTO drafts (topic, text) VALUES (?, ?)",
+            [
+                ("attic insulation", "Cold floors and high bills? Your attic may be under-insulated. Book a free inspection this week."),
+                ("spray foam", "Spray foam seals the gaps blown-in insulation misses — lower bills, quieter home."),
+                ("free inspection", "Free insulation inspection for homeowners this month. We'll show you exactly where heat escapes."),
+            ],
+        )
+
+    conn.commit()
+    conn.close()
+
+
+# ---------- drafts (used by the Content Agent) ----------
+def add_draft(text: str, topic: str = "") -> None:
+    conn = get_connection()
+    conn.execute("INSERT INTO drafts (topic, text) VALUES (?, ?)", (topic, text))
+    conn.commit()
+    conn.close()
+
+
+def list_drafts(limit: int = 30) -> list[dict[str, Any]]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT id, topic, text, created_at FROM drafts ORDER BY id DESC LIMIT ?", (limit,)
+    ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "topic": r["topic"], "text": r["text"], "created_at": r["created_at"]} for r in rows]
+
+
+def count_drafts() -> int:
+    conn = get_connection()
+    c = conn.execute("SELECT COUNT(*) AS c FROM drafts").fetchone()["c"]
+    conn.close()
+    return int(c)
+
+
+def delete_draft(draft_id: int) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM drafts WHERE id = ?", (draft_id,))
     conn.commit()
     conn.close()
 
@@ -112,6 +157,14 @@ def fetch_dashboard_payload() -> dict[str, Any]:
     customers = conn.execute("SELECT name, company, contact, status FROM customers ORDER BY id").fetchall()
     conn.close()
 
+    drafts = list_drafts()
+    draft_count = len(drafts)
+
+    metric_list = []
+    for r in metrics:
+        value = str(draft_count) if r["label"] == "Drafts" else r["value"]
+        metric_list.append({"category": r["category"], "label": r["label"], "value": value, "change": r["change"]})
+
     return {
         "profile": {
             "name": profile["name"],
@@ -119,21 +172,13 @@ def fetch_dashboard_payload() -> dict[str, Any]:
             "wifi_ssid": profile["wifi_ssid"],
             "wifi_password": profile["wifi_password"],
         },
-        "leadboard": {
-            "hot_leads": profile["hot_leads"],
-            "drafts": profile["drafts"],
-        },
-        "metrics": [
-            {"category": r["category"], "label": r["label"], "value": r["value"], "change": r["change"]}
-            for r in metrics
-        ],
+        "leadboard": {"hot_leads": profile["hot_leads"], "drafts": draft_count},
+        "metrics": metric_list,
+        "drafts": drafts,
         "reviews": [
             {
-                "platform": r["platform"],
-                "rating": r["rating"],
-                "author": r["author"],
-                "comment": r["comment"],
-                "new_alert": bool(r["new_alert"]),
+                "platform": r["platform"], "rating": r["rating"], "author": r["author"],
+                "comment": r["comment"], "new_alert": bool(r["new_alert"]),
             }
             for r in reviews
         ],
@@ -151,6 +196,6 @@ def fetch_dashboard_payload() -> dict[str, Any]:
 def fetch_leadcount() -> dict[str, int]:
     """Tiny payload for the ESP32 lead-finder box."""
     conn = get_connection()
-    row = conn.execute("SELECT hot_leads, drafts FROM profiles WHERE id = 1").fetchone()
+    row = conn.execute("SELECT hot_leads FROM profiles WHERE id = 1").fetchone()
     conn.close()
-    return {"hot_leads": row["hot_leads"] if row else 0, "drafts": row["drafts"] if row else 0}
+    return {"hot_leads": row["hot_leads"] if row else 0, "drafts": count_drafts()}

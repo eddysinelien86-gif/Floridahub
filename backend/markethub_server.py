@@ -6,8 +6,15 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
+from agents import run_content_agent
 from ai import generate as ai_generate
-from database import fetch_dashboard_payload, fetch_leadcount, init_db
+from database import (
+    delete_draft,
+    fetch_dashboard_payload,
+    fetch_leadcount,
+    init_db,
+    list_drafts,
+)
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
@@ -61,6 +68,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             self._send_json(fetch_leadcount())
             return
 
+        if path == "/api/drafts":
+            self._send_json({"drafts": list_drafts()})
+            return
+
         if path in ("/", "/index.html"):
             self._serve_web("index.html", "text/html; charset=utf-8")
             return
@@ -69,19 +80,26 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        if path != "/api/ai/generate":
-            self._send_json({"error": "not_found"}, status=404)
+        content_length = int(self.headers.get("Content-Length", "0"))
+        raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+        data = json.loads(raw_body or "{}")
+
+        if path == "/api/ai/generate":
+            prompt = str(data.get("prompt", "")).strip()
+            self._send_json(ai_generate(prompt))
             return
 
-        content_length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(content_length).decode("utf-8")
-        data = json.loads(raw_body or "{}")
-        prompt = str(data.get("prompt", "")).strip()
+        if path == "/api/agents/content":
+            # Content Agent: auto-write a batch of insulation post drafts.
+            self._send_json(run_content_agent(data.get("n", 3)))
+            return
 
-        # Real generation via Claude (falls back to sample text without a key).
-        response = ai_generate(prompt)
+        if path == "/api/drafts/delete":
+            delete_draft(int(data.get("id", 0)))
+            self._send_json({"ok": True})
+            return
 
-        self._send_json(response)
+        self._send_json({"error": "not_found"}, status=404)
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A003
         return
