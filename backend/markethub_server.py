@@ -46,6 +46,13 @@ class MarketHubHandler(BaseHTTPRequestHandler):
     def _authed(self) -> bool:
         if not AUTH_PASS:
             return True  # login disabled when no password is set
+        # The Pi's own screen (localhost, not proxied through the public tunnel)
+        # skips the login so the kiosk just shows the dashboard. Requests that
+        # come via the tunnel carry Cloudflare headers and still need the password.
+        client_ip = self.client_address[0] if self.client_address else ""
+        via_tunnel = bool(self.headers.get("Cf-Ray") or self.headers.get("Cf-Connecting-Ip"))
+        if client_ip in ("127.0.0.1", "::1") and not via_tunnel:
+            return True
         header = self.headers.get("Authorization", "")
         if header.startswith("Basic "):
             try:
