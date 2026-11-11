@@ -29,7 +29,8 @@ WEB_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__
 # public lead form (/lead, POST /api/lead) stays open so customers can submit.
 AUTH_USER = os.environ.get("MARKETHUB_USER", "admin")
 AUTH_PASS = os.environ.get("MARKETHUB_PASSWORD", "")
-PUBLIC_GET = {"/lead", "/health"}
+PUBLIC_GET = {"/lead", "/health", "/manifest.json",
+              "/apple-touch-icon.png", "/icon-192.png", "/icon-512.png"}
 PUBLIC_POST = {"/api/lead"}
 
 
@@ -151,6 +152,14 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
         if path == "/lead":
             self._serve_web("lead.html", "text/html; charset=utf-8")
+            return
+
+        if path == "/manifest.json":
+            self._serve_web("manifest.json", "application/manifest+json")
+            return
+
+        if path in ("/apple-touch-icon.png", "/icon-192.png", "/icon-512.png"):
+            self._serve_web(path.lstrip("/"), "image/png")
             return
 
         self._send_json({"error": "not_found"}, status=404)
