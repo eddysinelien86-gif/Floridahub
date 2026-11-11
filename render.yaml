@@ -1,0 +1,16 @@
+# Render Blueprint — deploys the MarketHub SaaS (saas/) as a free web service.
+# In Render: New + → Blueprint → pick this repo → it reads this file.
+services:
+  - type: web
+    name: markethub-saas
+    runtime: python
+    plan: free
+    rootDir: saas
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SAAS_SECRET
+        generateValue: true     # Render generates a strong secret
+      # Optional — real AI content for tenants:
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false

@@ -226,6 +226,8 @@ def submit_lead(slug):
     return render_template("lead_thanks.html", tenant=t)
 
 
+# Ensure tables exist on import so it works under gunicorn (production) too.
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", port=int(os.environ.get("SAAS_PORT", "9000")))
