@@ -1,6 +1,9 @@
+import json
 import os
 import sys
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -11,11 +14,17 @@ import ai
 class AiGenerateTests(unittest.TestCase):
     def setUp(self) -> None:
         # Ensure we test the offline fallback path deterministically.
-        self._saved_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        self._saved = {
+            k: os.environ.pop(k, None)
+            for k in ("ANTHROPIC_API_KEY", "MARKETHUB_OLLAMA_MODEL", "OLLAMA_HOST")
+        }
+        os.environ["MARKETHUB_OLLAMA_MODEL"] = "off"
 
     def tearDown(self) -> None:
-        if self._saved_key is not None:
-            os.environ["ANTHROPIC_API_KEY"] = self._saved_key
+        for key, value in self._saved.items():
+            os.environ.pop(key, None)
+            if value is not None:
+                os.environ[key] = value
 
     def test_detect_mode(self) -> None:
         self.assertEqual(ai.detect_mode("write a caption"), "caption")
@@ -34,6 +43,63 @@ class AiGenerateTests(unittest.TestCase):
         result = ai.generate("write a caption for the launch")
         self.assertEqual(result["source"], "sample")
         self.assertEqual(result["mode"], "caption")
+
+
+class _FakeOllama(BaseHTTPRequestHandler):
+    seen: list = []
+
+    def do_POST(self) -> None:  # noqa: N802
+        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        type(self).seen.append((self.path, body))
+        payload = json.dumps({"message": {"content": ' "Warm attic, lower bills." '}})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(payload.encode("utf-8"))
+
+    def log_message(self, *args: object) -> None:
+        return
+
+
+class AiOllamaTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._saved = {
+            k: os.environ.pop(k, None)
+            for k in ("ANTHROPIC_API_KEY", "MARKETHUB_OLLAMA_MODEL", "OLLAMA_HOST")
+        }
+        _FakeOllama.seen = []
+        self.server = HTTPServer(("127.0.0.1", 0), _FakeOllama)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def tearDown(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        for key, value in self._saved.items():
+            os.environ.pop(key, None)
+            if value is not None:
+                os.environ[key] = value
+
+    def test_local_model_is_used_without_a_key(self) -> None:
+        os.environ["OLLAMA_HOST"] = f"127.0.0.1:{self.server.server_port}"
+        os.environ["MARKETHUB_OLLAMA_MODEL"] = "tiny-test"
+        result = ai.generate("write a caption about attics")
+        self.assertEqual(result["source"], "ollama")
+        self.assertEqual(result["text"], "Warm attic, lower bills.")
+        path, body = _FakeOllama.seen[0]
+        self.assertEqual(path, "/api/chat")
+        self.assertEqual(body["model"], "tiny-test")
+        self.assertFalse(body["stream"])
+
+    def test_unreachable_local_model_falls_back_quietly(self) -> None:
+        port = self.server.server_port
+        self.server.shutdown()
+        self.server.server_close()
+        os.environ["OLLAMA_HOST"] = f"http://127.0.0.1:{port}"
+        result = ai.generate("write a caption")
+        self.assertEqual(result["source"], "sample")
+        self.assertNotIn("error", result)
+        self.server = HTTPServer(("127.0.0.1", 0), _FakeOllama)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
 
 if __name__ == "__main__":

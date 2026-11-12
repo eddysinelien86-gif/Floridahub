@@ -25,11 +25,24 @@ The server will listen on port 8000 by default.
 ## AI Assistant (Claude)
 
 The `/api/ai/generate` endpoint writes captions, hashtags, review replies, and
-marketing ideas using Claude. It works with or without a key:
+marketing ideas. It picks the first option that is available:
 
-- **With a key** it returns real, generated content (`"source": "claude"`).
-- **Without a key** it returns built-in sample text so the dashboard still runs
+- **With a key** it uses Claude (`"source": "claude"`).
+- **Without a key**, or if the Claude call fails, it uses a local
+  [Ollama](https://ollama.com) model running on the Pi (`"source": "ollama"`).
+  This is free and works offline, but takes several seconds per answer.
+- **With neither** it returns built-in sample text so the dashboard still runs
   (`"source": "sample"`).
+
+Local model setup on the Pi:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.2:3b
+# optional:
+export MARKETHUB_OLLAMA_MODEL="llama3.2:3b"        # or "off" to disable
+export OLLAMA_HOST="http://127.0.0.1:11434"       # another machine's address also works
+```
 
 Enable real AI by setting your key from [console.anthropic.com](https://console.anthropic.com):
 
