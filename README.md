@@ -22,6 +22,15 @@ python markethub_server.py
 
 The server will listen on port 8000 by default.
 
+## Update the Pi from GitHub
+
+After new code is pushed to GitHub, run this on the Pi to pull it and restart
+the dashboard (settings in `backend/secrets.env` and saved data are kept):
+
+```bash
+cd ~/Floridahub && ./update.sh
+```
+
 ## AI Assistant (Claude)
 
 The `/api/ai/generate` endpoint writes captions, hashtags, review replies, and
