@@ -12,6 +12,7 @@ import time
 
 from agents import run_content_agent, run_reply_agent
 from ai import generate as ai_generate
+from ai import status as ai_status
 from notify import send_lead_alert
 from database import (
     add_lead,
@@ -136,7 +137,9 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/dashboard":
-            self._send_json(fetch_dashboard_payload())
+            payload = fetch_dashboard_payload()
+            payload["ai"] = ai_status()
+            self._send_json(payload)
             return
 
         if path == "/api/leadcount":

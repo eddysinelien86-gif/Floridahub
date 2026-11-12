@@ -39,6 +39,9 @@ class AiGenerateTests(unittest.TestCase):
             self.assertIn("mode", result)
             self.assertTrue(result["text"], "text should never be empty")
 
+    def test_status_without_any_ai_is_sample(self) -> None:
+        self.assertEqual(ai.status()["provider"], "sample")
+
     def test_fallback_without_key_is_marked_sample(self) -> None:
         result = ai.generate("write a caption for the launch")
         self.assertEqual(result["source"], "sample")
@@ -47,6 +50,13 @@ class AiGenerateTests(unittest.TestCase):
 
 class _FakeOllama(BaseHTTPRequestHandler):
     seen: list = []
+
+    def do_GET(self) -> None:  # noqa: N802
+        payload = json.dumps({"models": [{"name": "tiny-test"}]})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(payload.encode("utf-8"))
 
     def do_POST(self) -> None:  # noqa: N802
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -89,6 +99,13 @@ class AiOllamaTests(unittest.TestCase):
         self.assertEqual(path, "/api/chat")
         self.assertEqual(body["model"], "tiny-test")
         self.assertFalse(body["stream"])
+
+    def test_status_reports_local_model_only_when_downloaded(self) -> None:
+        os.environ["OLLAMA_HOST"] = f"127.0.0.1:{self.server.server_port}"
+        os.environ["MARKETHUB_OLLAMA_MODEL"] = "tiny-test"
+        self.assertEqual(ai.status()["provider"], "ollama")
+        os.environ["MARKETHUB_OLLAMA_MODEL"] = "not-pulled"
+        self.assertEqual(ai.status()["provider"], "sample")
 
     def test_unreachable_local_model_falls_back_quietly(self) -> None:
         port = self.server.server_port

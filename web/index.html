@@ -255,8 +255,9 @@
                 <div><b>Backend:</b> <span id="setApi"></span></div>
                 <div><b>Wi-Fi (setup AP):</b> <span id="setWifi">—</span></div>
                 <div><b>Status:</b> <span id="setStatus">—</span></div>
+                <div><b>AI writer:</b> <span id="setAi">—</span></div>
               </div>
-              <p style="color:var(--muted);margin-top:14px;">To turn on real AI, restart the backend with your <code>ANTHROPIC_API_KEY</code> and <code>MARKETHUB_BRAND</code>. Press F11 for fullscreen kiosk mode.</p>
+              <p style="color:var(--muted);margin-top:14px;">Captions use Claude when an <code>ANTHROPIC_API_KEY</code> is saved in <code>backend/secrets.env</code>, otherwise the free local model on this Pi. Press F11 for fullscreen kiosk mode.</p>
             </div>
           </section>
         </div>
@@ -296,6 +297,7 @@
           $('companyTagline').textContent = d.profile?.tagline || '';
           $('setName').textContent = d.profile?.name || '—';
           $('setWifi').textContent = d.profile?.wifi_ssid || '—';
+          $('setAi').textContent = d.ai?.label || '—';
           // Auto-fill the permanent public URL so the QR points to it.
           if (d.public_url && $('publicUrl') && !$('publicUrl').value) {
             $('publicUrl').value = d.public_url;
@@ -407,7 +409,7 @@
       }
       makeQR();  // show the local link + QR by default
 
-      $('setApi').textContent = API_BASE;
+      $('setApi').textContent = API_BASE || location.origin;
       const clock = () => $('clock').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       clock(); setInterval(clock, 1000);
       loadDashboard(); setInterval(loadDashboard, 15000);

@@ -134,6 +134,26 @@ def _ollama_generate(prompt: str, mode: str) -> str:
     return text
 
 
+def status() -> dict:
+    """Say which writer the next request will use, for the Settings screen."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return {"provider": "claude", "label": f"Claude ({MODEL})"}
+    host, model = _ollama_settings()
+    if model:
+        try:
+            with urllib.request.urlopen(host + "/api/tags", timeout=2) as resp:
+                names = [m.get("name", "") for m in json.loads(resp.read()).get("models", [])]
+            if model in names or model + ":latest" in names:
+                return {"provider": "ollama", "label": f"Local model on this Pi ({model})"}
+            return {
+                "provider": "sample",
+                "label": f"Sample text (local model '{model}' is not downloaded)",
+            }
+        except Exception:
+            pass
+    return {"provider": "sample", "label": "Sample text (no AI connected)"}
+
+
 def _claude_generate(prompt: str, mode: str) -> str:
     """Ask Claude. Raises if the SDK is missing, the call fails or it is empty."""
     from anthropic import Anthropic
