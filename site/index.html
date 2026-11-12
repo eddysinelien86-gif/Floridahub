@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Florida Water 2.0</title>
+    <meta name="description" content="Florida's video feed. Submit your video, get seen, and promote your brand." />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="top-in">
+        <a class="brand" href="#/">
+          <span class="drop" aria-hidden="true"></span>
+          <span class="brand-name">Florida Water <b>2.0</b></span>
+        </a>
+        <form class="search" id="search" role="search">
+          <input id="q" type="search" name="q" placeholder="Search videos" aria-label="Search videos" maxlength="80" />
+        </form>
+        <nav class="nav" aria-label="Main">
+          <a href="#/" data-nav="feed">Videos</a>
+          <a href="#/promote" data-nav="promote">Promote</a>
+          <a href="#/how" data-nav="how">How it works</a>
+          <a class="btn btn-sm" href="#/submit" data-nav="submit">Submit a video</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="view" tabindex="-1"></main>
+
+    <footer class="foot">
+      <p>Videos play from the original creator's post. We do not download or re-upload anyone's content.</p>
+      <p><a href="#/how">Content policy and takedowns</a> · <a href="#/admin">Staff</a></p>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

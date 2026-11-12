@@ -1,0 +1,28 @@
+{
+  "brand": "Florida Water 2.0",
+  "tagline": "Florida's feed. Submitted by the people who filmed it.",
+  "categories": ["Music", "Comedy", "Sports", "Local News", "Lifestyle", "Business Spotlight"],
+  "packages": [
+    {
+      "id": "spotlight",
+      "name": "Spotlight Post",
+      "price": "Ask for rate",
+      "summary": "One video posted to the feed and tagged as sponsored.",
+      "features": ["Posted within 24 hours of approval", "Your link in the description", "Stays in the feed permanently"]
+    },
+    {
+      "id": "featured",
+      "name": "Featured Slot",
+      "price": "Ask for rate",
+      "summary": "Your video pinned in the featured row at the top of the home page.",
+      "features": ["Top-of-page placement for 7 days", "Everything in Spotlight Post", "Shared to our social pages"]
+    },
+    {
+      "id": "campaign",
+      "name": "Full Campaign",
+      "price": "Ask for rate",
+      "summary": "A month of posts, features and social promotion planned with you.",
+      "features": ["4 posts and 2 featured weeks", "Caption and hashtag writing", "End-of-month view report"]
+    }
+  ]
+}
