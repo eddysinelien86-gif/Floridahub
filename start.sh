@@ -11,6 +11,10 @@
 # Repo root = the folder this script lives in (works wherever it's cloned)
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# When started at boot the search path is very short; add the usual places
+# cloudflared and pip-installed tools live so they are still found.
+export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin:$HOME/bin"
+
 # Load secrets if present (MARKETHUB_PASSWORD, ANTHROPIC_API_KEY, MARKETHUB_*).
 if [ -f "$DIR/backend/secrets.env" ]; then
   set -a
@@ -36,6 +40,12 @@ curl -s -o /dev/null -w "localhost:8000 -> %{http_code} (401 = password-locked, 
 
 # Start the public tunnel if cloudflared is installed
 if command -v cloudflared >/dev/null 2>&1; then
+  # Right after boot the network may not be ready yet; give it up to a minute
+  # so the tunnel does not give up before Wi-Fi connects.
+  for _ in $(seq 1 30); do
+    getent hosts cloudflare.com >/dev/null 2>&1 && break
+    sleep 2
+  done
   if [ -f "$HOME/.cloudflared/config.yml" ]; then
     # Permanent named tunnel (your own domain)
     nohup cloudflared tunnel run > "$HOME/tunnel.log" 2>&1 &
