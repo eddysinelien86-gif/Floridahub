@@ -8,6 +8,18 @@ from typing import Any
 DB_PATH = Path(__file__).with_name("markethub.db")
 
 
+# Demo rows that older versions seeded on every start (removed by init_db).
+_DEMO_CUSTOMERS = [
+    ("Ava Brooks", "ava@email.com"),
+    ("Jorge Silva", "jorge@email.com"),
+    ("Riley Chen", "riley@email.com"),
+]
+_DEMO_REVIEWS = [
+    ("Dana R.", "Crew sealed our attic fast — energy bill already dropped."),
+    ("Marcus T.", "Great quote, clean install, very professional team."),
+]
+
+
 def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -69,28 +81,15 @@ def init_db() -> None:
     except sqlite3.OperationalError:
         pass
 
-    conn.execute("DELETE FROM profiles")
-    conn.execute(
-        "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (1, "Insulation Lead Finders", "Spray foam & insulation — lead generation",
-         "MarketHub-Setup", "markethub123", 15),
-    )
-
-    conn.execute("DELETE FROM metrics")
-    conn.executemany(
-        "INSERT INTO metrics (category, label, value, change) VALUES (?, ?, ?, ?)",
-        [
-            ("analytics", "Hot leads", "15", "+3"),
-            ("analytics", "Drafts", "0", ""),   # value is replaced live with the real count
-            ("analytics", "Appointments", "9", "+2"),
-            ("analytics", "Jobs booked", "$42.6K", "+18%"),
-            ("social", "Facebook leads", "142", "+21%"),
-            ("social", "Google LSA", "98", "+12%"),
-            ("social", "Referrals", "54", "+8%"),
-            ("social", "Website form", "61", "+15%"),
-        ],
-    )
+    # Keep whatever is already saved. Earlier versions wiped these tables and
+    # re-inserted demo rows on every start, which threw away real leads.
+    if conn.execute("SELECT COUNT(*) AS c FROM profiles WHERE id = 1").fetchone()["c"] == 0:
+        conn.execute(
+            "INSERT INTO profiles (id, name, tagline, wifi_ssid, wifi_password, hot_leads) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (1, "Insulation Lead Finders", "Spray foam & insulation — lead generation",
+             "MarketHub-Setup", "markethub123", 0),
+        )
 
     # Migrate older DBs that predate the reply column.
     try:
@@ -98,24 +97,12 @@ def init_db() -> None:
     except sqlite3.OperationalError:
         pass
 
-    conn.execute("DELETE FROM reviews")
-    conn.executemany(
-        "INSERT INTO reviews (platform, rating, author, comment, new_alert) VALUES (?, ?, ?, ?, ?)",
-        [
-            ("Google", 5.0, "Dana R.", "Crew sealed our attic fast — energy bill already dropped.", 1),
-            ("Facebook", 4.9, "Marcus T.", "Great quote, clean install, very professional team.", 1),
-        ],
-    )
-
-    conn.execute("DELETE FROM customers")
-    conn.executemany(
-        "INSERT INTO customers (name, company, contact, status) VALUES (?, ?, ?, ?)",
-        [
-            ("Ava Brooks", "Attic insulation", "ava@email.com", "Hot lead"),
-            ("Jorge Silva", "Spray foam quote", "jorge@email.com", "Quote sent"),
-            ("Riley Chen", "Crawlspace job", "riley@email.com", "Scheduled"),
-        ],
-    )
+    # One-time cleanup of the demo rows older versions inserted. Matched on
+    # their exact text so real leads and reviews are never touched.
+    conn.executemany("DELETE FROM customers WHERE name = ? AND contact = ?", _DEMO_CUSTOMERS)
+    conn.executemany("DELETE FROM reviews WHERE author = ? AND comment = ?", _DEMO_REVIEWS)
+    # The numbers on the tiles are now counted live (see _live_metrics).
+    conn.execute("DELETE FROM metrics")
 
     # Seed a few starter drafts so the box shows a count before the agent runs.
     if conn.execute("SELECT COUNT(*) AS c FROM drafts").fetchone()["c"] == 0:
@@ -189,28 +176,44 @@ def add_lead(name: str, contact: str, service: str) -> int:
         "INSERT INTO customers (name, company, contact, status) VALUES (?, ?, ?, ?)",
         (name or "New lead", service or "Insulation", contact or "", "Hot lead"),
     )
-    conn.execute("UPDATE profiles SET hot_leads = hot_leads + 1 WHERE id = 1")
     conn.commit()
-    hot = conn.execute("SELECT hot_leads FROM profiles WHERE id = 1").fetchone()["hot_leads"]
+    hot = _count_hot_leads(conn)
     conn.close()
-    return int(hot)
+    return hot
+
+
+def _count_hot_leads(conn: sqlite3.Connection) -> int:
+    row = conn.execute("SELECT COUNT(*) AS c FROM customers WHERE status = 'Hot lead'").fetchone()
+    return int(row["c"])
+
+
+def _live_metrics(conn: sqlite3.Connection, draft_count: int) -> list[dict[str, str]]:
+    """Tile numbers counted from what is really saved — no made-up figures."""
+    total = conn.execute("SELECT COUNT(*) AS c FROM customers").fetchone()["c"]
+    reviews = conn.execute("SELECT COUNT(*) AS c FROM reviews").fetchone()["c"]
+    rows = [
+        ("analytics", "Hot leads", str(_count_hot_leads(conn)), ""),
+        ("analytics", "Drafts", str(draft_count), ""),
+        ("analytics", "Total leads", str(total), ""),
+        ("analytics", "Reviews", str(reviews), ""),
+        ("social", "Website form", str(total), "live"),
+        ("social", "Facebook leads", "—", "not connected"),
+        ("social", "Google LSA", "—", "not connected"),
+        ("social", "Referrals", "—", "not connected"),
+    ]
+    return [{"category": c, "label": l, "value": v, "change": ch} for c, l, v, ch in rows]
 
 
 def fetch_dashboard_payload() -> dict[str, Any]:
     conn = get_connection()
     profile = conn.execute("SELECT * FROM profiles WHERE id = 1").fetchone()
-    metrics = conn.execute("SELECT category, label, value, change FROM metrics ORDER BY id").fetchall()
     reviews = conn.execute("SELECT id, platform, rating, author, comment, new_alert, reply FROM reviews ORDER BY id").fetchall()
     customers = conn.execute("SELECT name, company, contact, status FROM customers ORDER BY id").fetchall()
-    conn.close()
-
     drafts = list_drafts()
-    draft_count = len(drafts)
-
-    metric_list = []
-    for r in metrics:
-        value = str(draft_count) if r["label"] == "Drafts" else r["value"]
-        metric_list.append({"category": r["category"], "label": r["label"], "value": value, "change": r["change"]})
+    draft_count = count_drafts()
+    metric_list = _live_metrics(conn, draft_count)
+    hot_leads = _count_hot_leads(conn)
+    conn.close()
 
     return {
         "profile": {
@@ -219,7 +222,7 @@ def fetch_dashboard_payload() -> dict[str, Any]:
             "wifi_ssid": profile["wifi_ssid"],
             "wifi_password": profile["wifi_password"],
         },
-        "leadboard": {"hot_leads": profile["hot_leads"], "drafts": draft_count},
+        "leadboard": {"hot_leads": hot_leads, "drafts": draft_count},
         "public_url": os.environ.get("MARKETHUB_PUBLIC_URL", ""),
         "metrics": metric_list,
         "drafts": drafts,
@@ -244,6 +247,6 @@ def fetch_dashboard_payload() -> dict[str, Any]:
 def fetch_leadcount() -> dict[str, int]:
     """Tiny payload for the ESP32 lead-finder box."""
     conn = get_connection()
-    row = conn.execute("SELECT hot_leads FROM profiles WHERE id = 1").fetchone()
+    hot = _count_hot_leads(conn)
     conn.close()
-    return {"hot_leads": row["hot_leads"] if row else 0, "drafts": count_drafts()}
+    return {"hot_leads": hot, "drafts": count_drafts()}

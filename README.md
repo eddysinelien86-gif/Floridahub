@@ -31,6 +31,19 @@ the dashboard (settings in `backend/secrets.env` and saved data are kept):
 cd ~/Floridahub && ./update.sh
 ```
 
+## Start at boot
+
+```bash
+./install-autostart.sh          # backend + public tunnel only (keeps the lead form online)
+./install-autostart.sh screen   # also open the dashboard full-screen on the Pi
+./install-autostart.sh off      # stop starting anything at boot
+```
+
+## Saved data
+
+Leads, reviews and drafts are kept across restarts. The tiles are counted from
+what is really saved; sources that are not connected yet show "—".
+
 ## AI Assistant (Claude)
 
 The `/api/ai/generate` endpoint writes captions, hashtags, review replies, and

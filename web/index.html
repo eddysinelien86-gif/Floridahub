@@ -326,9 +326,9 @@
             </div>`).join('') || '<div class="row"><div class="sub">No reviews yet.</div></div>';
 
           $('customers').innerHTML = (d.customers || []).map(x => `
-            <div class="row"><div><div>${x.name}</div>
-            <div class="sub">${x.company} • ${x.contact}</div></div><div class="tag">${x.status}</div></div>`).join('')
-            || '<div class="row"><div class="sub">No leads yet.</div></div>';
+            <div class="row"><div><div>${esc(x.name)}</div>
+            <div class="sub">${esc(x.company)} • ${esc(x.contact)}</div></div><div class="tag">${esc(x.status)}</div></div>`).join('')
+            || '<div class="row"><div class="sub">No leads yet. They appear here when someone fills in your form.</div></div>';
         } catch (e) { setConn(false); }
       }
 
