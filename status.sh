@@ -24,7 +24,21 @@ fi
 
 echo ""
 echo "=== Public URL (share this + /lead) ==="
-grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$HOME/tunnel.log" 2>/dev/null | tail -1 || echo "(no tunnel URL found)"
+cfg="$HOME/.cloudflared/config.yml"
+if [ -f "$cfg" ]; then
+  # Permanent named tunnel: the address comes from the config file
+  host=$(grep -o 'hostname: *[^ ]*' "$cfg" | head -1 | awk '{print $2}')
+  url="https://$host"
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url/lead" 2>/dev/null)
+  if [ "$code" = "000" ] || [ -z "$code" ]; then
+    echo "$url  (NOT reachable — check the DNS record: cloudflared tunnel route dns <tunnel> $host)"
+  else
+    echo "$url  (reachable, HTTP $code)"
+  fi
+else
+  url=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$HOME/tunnel.log" 2>/dev/null | tail -1)
+  echo "${url:-(no tunnel URL found)}"
+fi
 
 echo ""
 echo "Dashboard on the Pi : http://localhost:8000"
