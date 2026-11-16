@@ -174,6 +174,24 @@ def get_app():
     return render_template("get.html")
 
 
+@app.route("/api/leadfeed")
+def api_leadfeed():
+    """Tiny JSON feed for the ESP32 Lead Machine device. Protected by DEVICE_KEY."""
+    key = os.environ.get("DEVICE_KEY", "").strip()
+    if not key or request.args.get("key", "") != key:
+        return {"error": "auth"}, 403
+    t = query_one("SELECT id, name FROM tenants WHERE slug = ?", (request.args.get("slug", ""),))
+    if not t:
+        return {"error": "not found"}, 404
+    total = query_one("SELECT COUNT(*) AS c FROM leads WHERE tenant_id = ?", (t["id"],))["c"]
+    newc = query_one("SELECT COUNT(*) AS c FROM leads WHERE tenant_id = ? AND status = 'New'", (t["id"],))["c"]
+    latest = query_one("SELECT name, service FROM leads WHERE tenant_id = ? ORDER BY id DESC", (t["id"],))
+    return {
+        "company": t["name"], "total": int(total), "new": int(newc),
+        "latest": (f"{(latest['name'] or 'Lead')} - {(latest['service'] or '')}".strip(" -") if latest else ""),
+    }
+
+
 @app.route("/manifest.json")
 def manifest():
     return {
