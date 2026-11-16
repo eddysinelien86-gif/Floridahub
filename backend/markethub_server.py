@@ -4,7 +4,10 @@ import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import urlparse
+
+WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 import trends as trend_finder
 from database import (
@@ -29,10 +32,32 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_html(self, filename: str) -> None:
+        file_path = (WEB_DIR / filename).resolve()
+        # Guard against path traversal: must stay inside WEB_DIR.
+        if WEB_DIR not in file_path.parents or not file_path.is_file():
+            self._send_json({"error": "not_found"}, status=404)
+            return
+        body = file_path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
         if path == "/health":
             self._send_json({"status": "ok", "service": "MarketHub"})
+            return
+
+        if path in ("/", "/phone", "/phone.html"):
+            self._send_html("phone.html")
+            return
+
+        if path in ("/dashboard", "/index.html"):
+            self._send_html("index.html")
             return
 
         if path == "/api/dashboard":

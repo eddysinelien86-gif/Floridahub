@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Floridahub Trends</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #0d1728;
+      --panel-2: #13253e;
+      --accent: #3b82f6;
+      --accent-2: #60a5fa;
+      --text: #e5f2ff;
+      --muted: #8da5c8;
+      --good: #34d399;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Inter, system-ui, Arial, sans-serif;
+      background: radial-gradient(circle at top, #11253f 0%, var(--bg) 48%, #040814 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: env(safe-area-inset-top) 14px calc(90px + env(safe-area-inset-bottom)) 14px;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 18px 4px 14px;
+    }
+    .logo {
+      width: 44px; height: 44px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      display: grid; place-items: center; font-weight: 800; font-size: 20px;
+    }
+    h1 { font-size: 20px; margin: 0; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .status {
+      font-size: 12px; color: var(--muted); padding: 6px 4px 14px;
+    }
+    .card {
+      background: rgba(13, 23, 40, 0.92);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 18px; padding: 16px; margin-bottom: 14px;
+      box-shadow: 0 16px 40px rgba(2, 6, 23, 0.35);
+    }
+    .card.posted { opacity: 0.55; }
+    .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .src { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .badge {
+      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      background: rgba(59,130,246,.18); color: var(--accent-2);
+    }
+    .badge.posted { background: rgba(52,211,153,.18); color: var(--good); }
+    .title { font-weight: 700; font-size: 15px; line-height: 1.35; margin-bottom: 10px; }
+    .caption {
+      background: var(--panel-2); border-radius: 12px; padding: 12px;
+      font-size: 13px; white-space: pre-wrap; line-height: 1.45; color: #dbeafe;
+    }
+    .row { display: flex; gap: 10px; margin-top: 12px; }
+    button {
+      flex: 1; border: 0; border-radius: 12px; padding: 13px 10px;
+      font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
+    }
+    .copy { background: linear-gradient(135deg, var(--accent), #6366f1); }
+    .copy.done { background: var(--good); }
+    .mark { background: var(--panel-2); color: var(--accent-2); border: 1px solid rgba(96,165,250,.3); }
+    .mark.on { background: rgba(52,211,153,.15); color: var(--good); border-color: rgba(52,211,153,.4); }
+    a.read { color: var(--accent-2); font-size: 12px; text-decoration: none; display: inline-block; margin-top: 10px; }
+    .refresh {
+      position: fixed; left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom));
+      padding: 16px; font-size: 16px; border-radius: 16px;
+      background: linear-gradient(135deg, #8b5cf6, var(--accent));
+      box-shadow: 0 10px 30px rgba(59,130,246,.4);
+    }
+    .refresh:disabled { opacity: .6; }
+    .empty { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">F</div>
+    <div>
+      <h1>Floridahub Trends</h1>
+      <div class="sub">Hip-hop &amp; entertainment · ready to post</div>
+    </div>
+  </header>
+  <div class="status" id="status">Loading…</div>
+  <div id="list"></div>
+  <button class="refresh" id="refreshBtn" onclick="refresh()">🔄 Find new trends</button>
+
+  <script>
+    const API = location.origin; // served from the same backend
+    const listEl = document.getElementById('list');
+    const statusEl = document.getElementById('status');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    function escapeHtml(s) {
+      return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    async function load() {
+      try {
+        const res = await fetch(API + '/api/trends');
+        const data = await res.json();
+        render(data.trends || []);
+      } catch (e) {
+        statusEl.textContent = 'Could not reach the bot. Is the server running?';
+      }
+    }
+
+    function render(trends) {
+      if (!trends.length) {
+        listEl.innerHTML = '<div class="empty">No trends yet.<br>Tap “Find new trends” below to pull the latest.</div>';
+        statusEl.textContent = '';
+        return;
+      }
+      statusEl.textContent = trends.length + ' stories · sorted by what\'s hot';
+      listEl.innerHTML = trends.map(t => {
+        const posted = t.status === 'posted';
+        return `
+        <div class="card ${posted ? 'posted' : ''}" data-id="${t.id}">
+          <div class="meta">
+            <span class="src">${escapeHtml(t.source)}</span>
+            <span class="badge ${posted ? 'posted' : ''}">${posted ? '✓ posted' : '🔥 ' + t.score}</span>
+          </div>
+          <div class="title">${escapeHtml(t.title)}</div>
+          <div class="caption" id="cap-${t.id}">${escapeHtml(t.caption)}</div>
+          <div class="row">
+            <button class="copy" onclick="copyCap(${t.id}, this)">📋 Copy caption</button>
+            <button class="mark ${posted ? 'on' : ''}" onclick="togglePosted(${t.id}, this)">${posted ? '✓ Posted' : 'Mark posted'}</button>
+          </div>
+          ${t.link ? `<a class="read" href="${escapeHtml(t.link)}" target="_blank" rel="noopener">Read the story ↗</a>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    async function copyCap(id, btn) {
+      const text = document.getElementById('cap-' + id).innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (e) {
+        const r = document.createRange(); r.selectNode(document.getElementById('cap-' + id));
+        window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+        document.execCommand('copy'); window.getSelection().removeAllRanges();
+      }
+      btn.textContent = '✓ Copied!'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = '📋 Copy caption'; btn.classList.remove('done'); }, 1600);
+    }
+
+    async function togglePosted(id, btn) {
+      const card = btn.closest('.card');
+      const nowPosted = !card.classList.contains('posted');
+      try {
+        await fetch(API + '/api/trends/status', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ id, status: nowPosted ? 'posted' : 'draft' })
+        });
+      } catch (e) {}
+      load();
+    }
+
+    async function refresh() {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '⏳ Pulling the latest…';
+      statusEl.textContent = 'Scanning hip-hop & entertainment feeds…';
+      try {
+        const res = await fetch(API + '/api/trends/refresh', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ limit: 15 })
+        });
+        const data = await res.json();
+        render(data.trends || []);
+        const ok = (data.sources || []).filter(s => s.ok).length;
+        statusEl.textContent = `Added ${data.inserted} new · ${ok} feeds responded`;
+      } catch (e) {
+        statusEl.textContent = 'Refresh failed. Check the server/connection.';
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '🔄 Find new trends';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
