@@ -6,7 +6,14 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-from database import fetch_dashboard_payload, init_db
+import trends as trend_finder
+from database import (
+    fetch_dashboard_payload,
+    fetch_trends,
+    init_db,
+    set_trend_status,
+    store_trends,
+)
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
@@ -32,17 +39,49 @@ class MarketHubHandler(BaseHTTPRequestHandler):
             self._send_json(fetch_dashboard_payload())
             return
 
+        if path == "/api/trends":
+            self._send_json({"trends": fetch_trends()})
+            return
+
         self._send_json({"error": "not_found"}, status=404)
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        content_length = int(self.headers.get("Content-Length", "0"))
+        raw_body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+        data = json.loads(raw_body or "{}")
+
+        if path == "/api/trends/refresh":
+            brand = str(data.get("brand") or trend_finder.DEFAULT_BRAND)
+            limit = int(data.get("limit", 12))
+            payload = trend_finder.gather_trends(limit=limit, brand=brand)
+            inserted = store_trends(payload)
+            self._send_json(
+                {
+                    "generated_at": payload["generated_at"],
+                    "fetched": payload["count"],
+                    "inserted": inserted,
+                    "sources": payload["sources"],
+                    "trends": fetch_trends(),
+                }
+            )
+            return
+
+        if path == "/api/trends/status":
+            trend_id = data.get("id")
+            status = str(data.get("status", "")).strip()
+            allowed = {"draft", "approved", "posted", "skipped"}
+            if not isinstance(trend_id, int) or status not in allowed:
+                self._send_json({"error": "bad_request"}, status=400)
+                return
+            changed = set_trend_status(trend_id, status)
+            self._send_json({"updated": changed, "id": trend_id, "status": status})
+            return
+
         if path != "/api/ai/generate":
             self._send_json({"error": "not_found"}, status=404)
             return
 
-        content_length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(content_length).decode("utf-8")
-        data = json.loads(raw_body or "{}")
         prompt = str(data.get("prompt", "")).strip().lower()
 
         if "caption" in prompt:

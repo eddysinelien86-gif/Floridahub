@@ -50,6 +50,20 @@ def init_db() -> None:
             contact TEXT NOT NULL,
             status TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS trends (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            link TEXT,
+            summary TEXT,
+            source TEXT,
+            published TEXT,
+            score INTEGER DEFAULT 0,
+            caption TEXT,
+            hashtags TEXT,
+            status TEXT DEFAULT 'draft',
+            fetched_at TEXT
+        );
         """
     )
 
@@ -150,3 +164,89 @@ def fetch_dashboard_payload() -> dict[str, Any]:
             "Settings",
         ],
     }
+
+
+def store_trends(payload: dict[str, Any]) -> int:
+    """Persist a batch of gathered trends.
+
+    De-duplicates against what is already stored by (title, link) so a refresh
+    does not pile up repeats, and preserves the status of any item that was
+    already marked (e.g. 'posted') instead of resetting it to 'draft'.
+    Returns the number of new rows inserted.
+    """
+    trends = payload.get("trends", [])
+    fetched_at = payload.get("generated_at")
+    conn = get_connection()
+    existing = {
+        (row["title"], row["link"])
+        for row in conn.execute("SELECT title, link FROM trends").fetchall()
+    }
+    inserted = 0
+    for item in trends:
+        key = (item.get("title"), item.get("link", ""))
+        if key in existing:
+            continue
+        conn.execute(
+            """
+            INSERT INTO trends
+                (title, link, summary, source, published, score, caption, hashtags, status, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+            """,
+            (
+                item.get("title"),
+                item.get("link", ""),
+                item.get("summary", ""),
+                item.get("source", ""),
+                item.get("published"),
+                int(item.get("score", 0)),
+                item.get("caption", ""),
+                " ".join(item.get("hashtags", [])),
+                fetched_at,
+            ),
+        )
+        inserted += 1
+    conn.commit()
+    conn.close()
+    return inserted
+
+
+def fetch_trends(limit: int = 25, status: str | None = None) -> list[dict[str, Any]]:
+    """Return stored trends, highest score first."""
+    conn = get_connection()
+    if status:
+        rows = conn.execute(
+            "SELECT * FROM trends WHERE status = ? ORDER BY score DESC, id DESC LIMIT ?",
+            (status, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM trends ORDER BY score DESC, id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    conn.close()
+    return [
+        {
+            "id": row["id"],
+            "title": row["title"],
+            "link": row["link"],
+            "summary": row["summary"],
+            "source": row["source"],
+            "published": row["published"],
+            "score": row["score"],
+            "caption": row["caption"],
+            "hashtags": row["hashtags"].split() if row["hashtags"] else [],
+            "status": row["status"],
+            "fetched_at": row["fetched_at"],
+        }
+        for row in rows
+    ]
+
+
+def set_trend_status(trend_id: int, status: str) -> bool:
+    """Mark a trend as draft/approved/posted/skipped. Returns True if a row changed."""
+    conn = get_connection()
+    cur = conn.execute("UPDATE trends SET status = ? WHERE id = ?", (status, trend_id))
+    conn.commit()
+    changed = cur.rowcount > 0
+    conn.close()
+    return changed
