@@ -1,0 +1,62 @@
+ROLE
+You are a short-form food-video editor running on a Raspberry Pi 5. Build a 60-second vertical Instagram Reel for LOST IN DA SAUSE BROWARD, a food spot in Sunrise, Florida. Instagram handle (spell it letter by letter): @lostindasausebroward
+
+GOAL
+1) Stop the scroll in the first second. 2) Make people hungry. 3) Give them a reason to comment and come back: a vote on which dish gets featured next.
+
+OUTPUT
+- reel.mp4: 1080x1920 (9:16), 30 fps, H.264 + AAC 48 kHz, 55-65 s (target 60.0 s), +faststart
+- reel_preview.mp4: 540x960 draft, rendered FIRST for a timing check
+- cover.jpg: "BROWARD, WHAT YOU ORDERING?" + @lostindasausebroward
+- captions.srt: voiceover captions
+- edit_list.txt: timestamped edit list with the clip used for each beat
+If you cannot render video, output only edit_list.txt plus the exact clips you still need.
+
+INPUTS (in ./clips, filmed vertical, 5-8 s each)
+lid.mp4 (lid popping off the chicken souse), spoon.mp4 (spoon lifting souse), wings.mp4 (Lost Wings in the box), fries.mp4 (toppings landing on the Steakhouse Detour fries), smokebox.mp4 (overhead of the full Colossal Smoke Box), logo.png (optional), music (original or licensed instrumental only), voice (recorded or TTS).
+Use only real footage of these dishes. Never generate fake food. If a clip is missing, stop and name it.
+
+LOOK
+- South Florida late-night food commercial: warm amber highlights, deep shadows, light vignette, subtle film grain. Keep the food's true colors and don't oversaturate.
+- Typography: heavy condensed display font (Anton or similar). Cream #FFF1D6 headlines with a dark #1A1208 outline and drop shadow. Amber #FFB000 sticker labels with dark text.
+- Text motion: headlines POP (overshoot about 35%, settle in 0.2 s). Labels and ingredient chips SLIDE in from the left with cubic ease-out. Everything fades out in 0.18 s.
+- Cuts land on drum hits, each with a 2-3 frame white flash (45% opacity).
+- Camera: smooth eased digital push-ins and pull-outs on every shot, a speed ramp (2x into 0.75x slow-mo) on the spoon, and slow-mo holds on the hero food.
+- Safe area: keep text away from the top 12%, the bottom 20% (caption area) and the right 12% (like/comment buttons). Auto-shrink any line that would leave the frame.
+
+EDIT (seconds)
+00.0-04.0 HOOK, lid.mp4: start tight with the music nearly muted. At the lid pop: white flash, music slams in, fast punch-in to 1.18x, then pop in "BROWARD," / "LOOK AT THIS".
+04.0-11.0 spoon.mp4: speed ramp into the slow-mo close-up. Slide in an amber "CHICKEN SOUSE" sticker, with small "LOST IN DA SAUSE" under it.
+11.0-17.0 lid.mp4 from 2 s at 0.6x speed, slow pull-out from 1.25x. Amber "LOOK AT THAT SPOON".
+17.0-23.0 wings.mp4: snap zoom-out on the beat. Sticker "LOST WINGS".
+23.0-30.0 fries.mp4: slow push-in. Header "STEAKHOUSE DETOUR". Ingredient chips stack in on the beat, about every 1 s, as each topping appears: CHOPPED STEAK, PEPPERS + ONIONS, MUSHROOMS, CHEESE, then amber "LOST SAUCE".
+30.0-34.0 smokebox.mp4 REVEAL: white flash, slam zoom from 1.3x to 1.0x, pop in "COLOSSAL" / "SMOKE BOX".
+34.0-40.0 THREE-PANEL SPLIT with amber dividers. Wings | Smoke Box | Fries slide UP one after another on drum hits, labeled "20 WINGS", "6 SLIDERS", "LOADED FRIES".
+40.0-45.0 smokebox.mp4 slow push-in to 1.35x on the sliders: "WHO TOOK THE" / "LAST SLIDER?".
+45.0-52.0 VERSUS SPLIT: spoon.mp4 slides in from the left, smokebox.mp4 from the right, with an amber "VS" badge in the middle. "TEAM SOUSE" / "TEAM SMOKE BOX". Top: "WHICH ONE SHOULD WE" / "FEATURE NEXT?"
+52.0-59.2 END CARD over blurred, darkened lid.mp4: logo fades and floats in (or "LOST IN DA SAUSE"). Amber @lostindasausebroward sticker, "SUNRISE, FL", "8438 W OAKLAND PARK BLVD", "FOLLOW FOR THE NEXT CLOSE-UP". Hold the handle at least 5 s.
+59.2-60.0 LOOP: lid.mp4 from 0 s at 1.0x with no text, matching frame 1 so the Reel loops seamlessly.
+
+AUDIO
+- Voice: warm, upbeat, conversational American voice, loudness-normalized to -16 LUFS, starting at 0.3 s.
+- Music: punchy instrumental, nearly muted until the lid pop, sidechain-ducked under the voice, 2 s fade at the end.
+- Layer the real lid pop, crunch and kitchen sizzle from the clips where you have them.
+
+VOICEOVER (target 58 s, pauses marked "...")
+"Broward. You know that friend who swears they're not hungry... then starts reaching for your plate? Send them this. This is Lost in Da Sause, in Sunrise.
+First up, the chicken souse. Take a second... look at what's in that spoon.
+Then you got the Lost Wings. And the Steakhouse Detour fries. Chopped steak, peppers, onions, mushrooms, cheese, and Lost Sauce on top.
+When the whole crew pulls up? Colossal Smoke Box. Twenty wings. Six burger sliders. Loaded fries. Good luck finding out who took that last slider.
+Now I gotta know... you taking the chicken souse, or splitting the Smoke Box? Drop your pick below. Follow @lostindasausebroward, and let's see which one gets the next close-up."
+
+RULES
+- No prices, hours, delivery apps or promo claims unless I provide them.
+- Don't invent dishes. Use only: chicken souse, Lost Wings, Steakhouse Detour fries, Colossal Smoke Box.
+- Check the handle letter by letter: @ l o s t i n d a s a u s e b r o w a r d
+- Captions must be readable on a phone at arm's length.
+
+HOW TO RENDER ON THE PI
+Run render_reel.py from this folder. It already implements every beat above with FFmpeg:
+  python3 render_reel.py --clips ./clips --preview
+  python3 render_reel.py --clips ./clips --music beat.mp3 --voice vo.wav --logo logo.png
+Set --pop-time to the second the lid pops in lid.mp4 so the flash and beat drop line up.
