@@ -4,12 +4,15 @@ import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from database import fetch_dashboard_payload, init_db
+from outreach import api as outreach_api
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("MARKETHUB_PORT", "8000"))
+OUTREACH_PAGE = Path(__file__).resolve().parents[1] / "web" / "outreach.html"
 
 
 class MarketHubHandler(BaseHTTPRequestHandler):
@@ -22,8 +25,31 @@ class MarketHubHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _handle_outreach(self, method: str) -> None:
+        parsed = urlparse(self.path)
+        length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(length) if length else b""
+        status, payload = outreach_api.handle(method, parsed.path, parse_qs(parsed.query), self.headers, raw)
+        self._send_json(payload, status)
+
+    def _send_html(self, page: Path) -> None:
+        body = page.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path.startswith("/api/outreach/"):
+            self._handle_outreach("GET")
+            return
+
+        if path == "/outreach":
+            self._send_html(OUTREACH_PAGE)
+            return
+
         if path == "/health":
             self._send_json({"status": "ok", "service": "MarketHub"})
             return
@@ -36,6 +62,10 @@ class MarketHubHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if path.startswith("/api/outreach/"):
+            self._handle_outreach("POST")
+            return
+
         if path != "/api/ai/generate":
             self._send_json({"error": "not_found"}, status=404)
             return

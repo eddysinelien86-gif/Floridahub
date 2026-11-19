@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarketHub Outreach</title>
+  <style>
+    :root {
+      --bg: #07111f; --panel: #0d1728; --panel-2: #13253e; --accent: #3b82f6;
+      --text: #e5f2ff; --muted: #8da5c8; --good: #34d399; --warn: #fbbf24; --bad: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Inter, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .shell { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    .sub { color: var(--muted); margin: 0 0 18px; }
+    .card { background: var(--panel); border: 1px solid rgba(96,165,250,.2); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+    input, select, textarea { background: var(--panel-2); color: var(--text); border: 1px solid #24406a; border-radius: 8px; padding: 8px 10px; font: inherit; }
+    textarea { width: 100%; min-height: 90px; resize: vertical; }
+    button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font: inherit; cursor: pointer; }
+    button.ghost { background: transparent; border: 1px solid #24406a; color: var(--muted); }
+    button:disabled { opacity: .5; cursor: default; }
+    .pill { display: inline-block; font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--panel-2); color: var(--muted); margin-right: 6px; }
+    .pill.on { color: var(--good); } .pill.off { color: var(--warn); }
+    .banner { padding: 10px 12px; border-radius: 10px; background: rgba(251,191,36,.12); color: var(--warn); margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #1b2f4d; vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; }
+    .draft { border-top: 1px solid #1b2f4d; padding: 12px 0; }
+    .draft h3 { margin: 0 0 6px; font-size: 1rem; }
+    .meta { color: var(--muted); font-size: .85rem; margin-bottom: 8px; }
+    .count { color: var(--muted); font-size: .8rem; }
+    .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid #24406a; padding: 10px 16px; border-radius: 10px; display: none; max-width: calc(100% - 32px); }
+    .tabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .tabs button.active { background: var(--accent); } .tabs button:not(.active) { background: var(--panel-2); }
+    .scroll { overflow-x: auto; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <h1>Outreach agent</h1>
+  <p class="sub">Find contractors, let Claude draft a message for each, then review and send one at a time.</p>
+
+  <div id="status" class="card"></div>
+
+  <div class="card">
+    <div class="row">
+      <label>Trade
+        <select id="trade">
+          <option value="ac_restoration">AC restoration / HVAC</option>
+          <option value="roofing">Roofing</option>
+          <option value="general_contractor">General contractor</option>
+          <option value="insulation">Insulation</option>
+        </select>
+      </label>
+      <label>City
+        <input id="city" placeholder="Sarasota, FL" />
+      </label>
+      <label>Max results
+        <input id="max" type="number" value="20" min="1" max="60" style="width:90px" />
+      </label>
+      <button id="searchBtn">Find companies</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.1rem">Leads</h2>
+    <div class="scroll"><table id="leads"><thead><tr><th>Company</th><th>Phone</th><th>Email</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button data-status="draft" class="active">To review</button>
+      <button data-status="sent">Sent</button>
+      <button data-status="failed">Failed</button>
+      <button data-status="skipped">Skipped</button>
+    </div>
+    <div id="drafts"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let draftStatus = "draft";
+
+function token() { try { return localStorage.getItem("outreachToken") || ""; } catch { return ""; } }
+
+async function api(path, body) {
+  const opts = { headers: { "Content-Type": "application/json", "X-Outreach-Token": token() } };
+  if (body !== undefined) { opts.method = "POST"; opts.body = JSON.stringify(body); }
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    const t = prompt("Outreach admin token:");
+    if (t) { try { localStorage.setItem("outreachToken", t); } catch {} return api(path, body); }
+  }
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+function toast(msg) {
+  const el = $("#toast"); el.textContent = msg; el.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(() => (el.style.display = "none"), 4000);
+}
+
+async function loadStatus() {
+  const s = await api("/api/outreach/status");
+  const pill = (on, label) => `<span class="pill ${on ? "on" : "off"}">${on ? "✓" : "✗"} ${label}</span>`;
+  $("#status").innerHTML =
+    (s.dry_run ? `<div class="banner">Dry-run mode: nothing is actually sent. Set OUTREACH_DRY_RUN=false when you're ready.</div>` : "") +
+    pill(s.places_configured, "Google Places") + pill(s.claude_configured, "Claude drafting") +
+    pill(s.sms_configured, "Telnyx SMS") + pill(s.email_configured, "Email (SMTP)") +
+    pill(s.company_address_set, "Company address") +
+    `<div class="meta" style="margin-top:8px">Sending hours: ${esc(s.send_window)} · Daily caps: ${s.daily_caps.sms} texts, ${s.daily_caps.email} emails</div>`;
+}
+
+async function loadLeads() {
+  const { leads } = await api("/api/outreach/leads");
+  $("#leads tbody").innerHTML = leads.map((l) => `
+    <tr>
+      <td><strong>${esc(l.name)}</strong><div class="meta">${esc(l.trade)} · ${esc(l.address)}</div></td>
+      <td>${esc(l.phone || "—")}</td>
+      <td><input data-email="${l.id}" value="${esc(l.email || "")}" placeholder="add email" style="width:180px" /></td>
+      <td><button data-draft="${l.id}">Draft</button></td>
+    </tr>`).join("") || `<tr><td colspan="4" class="meta">No leads yet. Search above.</td></tr>`;
+}
+
+async function loadDrafts() {
+  const { drafts } = await api(`/api/outreach/drafts?status=${draftStatus}`);
+  $("#drafts").innerHTML = drafts.map((d) => {
+    const to = d.channel === "sms" ? d.phone : d.email;
+    const editable = d.status === "draft";
+    return `<div class="draft">
+      <h3>${d.channel === "sms" ? "Text" : "Email"} to ${esc(d.lead_name)}</h3>
+      <div class="meta">${esc(to || "no " + (d.channel === "sms" ? "phone" : "email") + " on file")}${d.error ? " · " + esc(d.error) : ""}${d.sent_at ? " · sent " + esc(d.sent_at) : ""}</div>
+      ${d.channel === "email" ? `<input data-subject="${d.id}" value="${esc(d.subject)}" ${editable ? "" : "disabled"} style="width:100%;margin-bottom:6px" />` : ""}
+      <textarea data-body="${d.id}" ${editable ? "" : "disabled"}>${esc(d.body)}</textarea>
+      ${d.channel === "sms" ? `<div class="count" data-count="${d.id}">${d.body.length} characters</div>` : ""}
+      ${editable ? `<div class="row" style="margin-top:8px">
+        <button data-send="${d.id}" ${to ? "" : "disabled"}>Send ${d.channel === "sms" ? "text" : "email"}</button>
+        <button class="ghost" data-skip="${d.id}">Skip</button>
+        ${to ? `<button class="ghost" data-optout="${esc(to)}">Mark opted out</button>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("") || `<p class="meta">Nothing here.</p>`;
+}
+
+document.addEventListener("click", async (e) => {
+  const t = e.target;
+  try {
+    if (t.id === "searchBtn") {
+      t.disabled = true; t.textContent = "Searching…";
+      const { leads } = await api("/api/outreach/search", { trade: $("#trade").value, city: $("#city").value, max_results: +$("#max").value });
+      toast(`Found ${leads.length} companies`); await loadLeads();
+    } else if (t.dataset.draft) {
+      const email = document.querySelector(`[data-email="${t.dataset.draft}"]`).value.trim();
+      if (email) await api(`/api/outreach/leads/${t.dataset.draft}/email`, { email });
+      t.disabled = true; t.textContent = "Drafting…";
+      const { drafts } = await api(`/api/outreach/leads/${t.dataset.draft}/draft`);
+      toast(`Drafted ${drafts.length} message(s) (${drafts[0]?.source})`); await loadDrafts();
+      t.disabled = false; t.textContent = "Draft";
+    } else if (t.dataset.send) {
+      const id = t.dataset.send;
+      const body = document.querySelector(`[data-body="${id}"]`).value;
+      const subjectEl = document.querySelector(`[data-subject="${id}"]`);
+      t.disabled = true;
+      const { draft } = await api(`/api/outreach/drafts/${id}/send`, { body, subject: subjectEl ? subjectEl.value : undefined });
+      toast(draft.dry_run ? "Dry run: logged as sent, nothing delivered" : "Sent ✓"); await loadDrafts();
+    } else if (t.dataset.skip) {
+      await api(`/api/outreach/drafts/${t.dataset.skip}/skip`, {}); await loadDrafts();
+    } else if (t.dataset.optout) {
+      await api("/api/outreach/optouts", { contact: t.dataset.optout, reason: "manual" }); toast("Opted out");
+    } else if (t.dataset.status) {
+      draftStatus = t.dataset.status;
+      document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b === t));
+      await loadDrafts();
+    }
+  } catch (err) {
+    toast(err.message);
+    if (t.id === "searchBtn") { t.disabled = false; t.textContent = "Find companies"; }
+    else if (t.dataset.draft) { t.disabled = false; t.textContent = "Draft"; }
+    else if (t.dataset.send) { t.disabled = false; }
+  } finally {
+    if (t.id === "searchBtn") { t.disabled = false; t.textContent = "Find companies"; }
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const id = e.target.dataset.body;
+  const c = id && document.querySelector(`[data-count="${id}"]`);
+  if (c) c.textContent = `${e.target.value.length} characters`;
+});
+
+loadStatus().then(loadLeads).then(loadDrafts).catch((e) => toast(e.message));
+</script>
+</body>
+</html>
