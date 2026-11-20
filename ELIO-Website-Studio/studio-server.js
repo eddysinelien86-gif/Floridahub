@@ -30,16 +30,16 @@ const CLAUDE_BIN =
 function load() {
   try {
     const d = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    return { items: d.items || [], jobs: d.jobs || [], imported: !!d.imported };
+    return { items: d.items || [], jobs: d.jobs || [], imported: !!d.imported, pausedUntil: d.pausedUntil || 0 };
   } catch {
-    return { items: [], jobs: [], imported: false };
+    return { items: [], jobs: [], imported: false, pausedUntil: 0 };
   }
 }
 let state = load();
-// A job that was running when the server stopped will never finish.
-for (const j of state.jobs) if (j.status === "working" || j.status === "queued") {
-  j.status = "failed";
-  j.error = "The studio was closed before this finished. Try again.";
+// A job that was cut off when the studio closed goes back in line. Waiting jobs keep waiting.
+for (const j of state.jobs) if (j.status === "working") {
+  j.status = "queued";
+  j.step = "Waiting to start (the studio was restarted)";
 }
 function save() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -161,9 +161,31 @@ Finally, reply with ONLY a short plain-text list for the user: what to confirm w
 }
 
 let running = false;
+const RETRY_FALLBACK_MS = 30 * 60 * 1000;   // when the reset time is unknown, try again in 30 minutes
+const MAX_LIMIT_WAITS = 12;
+const TICK_MS = +process.env.STUDIO_TICK_MS || 60 * 1000;
+const RESET_BUFFER_MS = process.env.STUDIO_RESET_BUFFER_MS !== undefined ? +process.env.STUDIO_RESET_BUFFER_MS : 60 * 1000;
+
+// Claude Code reports the reset as "...usage limit reached|<unix seconds>". Other wordings fall back to 30 minutes.
+function resetTimeFrom(text) {
+  const m = /\|(\d{10})\b/.exec(text || "");
+  const t = m ? +m[1] * 1000 : 0;
+  return t > Date.now() ? t + RESET_BUFFER_MS : Date.now() + RETRY_FALLBACK_MS;
+}
+
+function resumeIfReady() {
+  if (state.pausedUntil && Date.now() >= state.pausedUntil) {
+    state.pausedUntil = 0;
+    for (const j of state.jobs) if (j.status === "waiting") { j.status = "queued"; j.step = "Usage is back. Starting soon"; }
+    save();
+  }
+}
+
 function pump() {
   if (running) return;
-  const job = state.jobs.find((j) => j.status === "queued");
+  resumeIfReady();
+  if (state.pausedUntil) return;
+  const job = [...state.jobs].reverse().find((j) => j.status === "queued");   // oldest request first
   if (!job) return;
   running = true;
   runJob(job).finally(() => { running = false; save(); pump(); });
@@ -209,7 +231,7 @@ function runJob(job) {
       const why = (notes || err.split("\n").filter((l) => l.trim() && !/no stdin data received|redirect stdin/i.test(l)).join(" ")).trim();
       if (!fs.existsSync(outFile)) {
         if (code === null) return fail("It took too long and was stopped. Try again with more details (town, phone).");
-        if (/limit|usage|quota|rate/i.test(why)) return fail(`You've reached your Claude usage limit for now. Try again after it resets. (${why.slice(0, 200)})`);
+        if (/limit|usage|quota|rate/i.test(why)) return waitForReset(why);
         if (/log ?in|auth|credential|unauthori/i.test(why)) return fail("Claude Code isn't signed in. Open a terminal, run `claude`, sign in, then try again.");
         return fail(`The agent didn't produce a website.${why ? " " + why.slice(-400) : (isError ? " Claude Code reported an error." : "")}`);
       }
@@ -254,6 +276,16 @@ function runJob(job) {
       Object.assign(job, { status: "done", step: "Demo ready", finishedAt: new Date().toISOString(), itemId: item.id, demo: item.demo, name, notes });
       resolve();
     });
+
+    function waitForReset(why) {
+      job.limitWaits = (job.limitWaits || 0) + 1;
+      if (job.limitWaits > MAX_LIMIT_WAITS) return fail(`Your Claude usage limit kept blocking this demo. Try again later. (${why.slice(0, 160)})`);
+      state.pausedUntil = resetTimeFrom(why);
+      Object.assign(job, { status: "waiting", step: "Waiting for your usage to reset", retryAt: new Date(state.pausedUntil).toISOString() });
+      // Everything else in line waits too, instead of failing one by one.
+      for (const j of state.jobs) if (j.status === "queued") { j.status = "waiting"; j.step = "Waiting for your usage to reset"; j.retryAt = job.retryAt; }
+      resolve();
+    }
 
     function fail(msg) {
       Object.assign(job, { status: "failed", step: "Failed", error: msg, finishedAt: new Date().toISOString() });
@@ -381,7 +413,9 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const request = String(body.request || "").trim();
       if (request.length < 3) return send(res, 400, { error: "Tell the agent which business to build a demo for." });
-      const job = { id: "job-" + Date.now(), request, status: "queued", step: "Waiting to start", createdAt: new Date().toISOString() };
+      const paused = state.pausedUntil > Date.now();
+      const job = { id: "job-" + Date.now(), request, createdAt: new Date().toISOString(),
+        ...(paused ? { status: "waiting", step: "Waiting for your usage to reset", retryAt: new Date(state.pausedUntil).toISOString() } : { status: "queued", step: "Waiting to start" }) };
       state.jobs.unshift(job);
       state.jobs = state.jobs.slice(0, 50);
       save();
@@ -390,6 +424,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (p.startsWith("/api/jobs/") && req.method === "DELETE") {
       state.jobs = state.jobs.filter((j) => j.id !== p.slice(10) || j.status === "working");
+      if (!state.jobs.some((j) => j.status === "waiting")) state.pausedUntil = 0;
       save();
       return send(res, 200, { ok: true });
     }
@@ -408,4 +443,5 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`ELIO Studio is running at http://localhost:${PORT}`);
   console.log(`Agent uses: ${CLAUDE_BIN}`);
   pump();
+  setInterval(pump, TICK_MS);   // checks every minute whether usage is back
 });

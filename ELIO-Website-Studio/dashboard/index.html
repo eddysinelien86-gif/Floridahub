@@ -304,7 +304,7 @@ async function poll() {
     render();
   } catch (e) {}
   const busy = jobs.some(j => j.status === "queued" || j.status === "working");
-  pollTimer = setTimeout(poll, busy ? 3000 : 20000);
+  pollTimer = setTimeout(poll, busy ? 3000 : jobs.some(j => j.status === "waiting") ? 30000 : 20000);
 }
 
 const stageCls = s => s === "Live" ? "live" : s === "Demo ready" ? "ready" : "";
@@ -349,18 +349,23 @@ function render() {
 
   if (mode === "server") {
     $("jobs").innerHTML = jobs.slice(0, 8).map(j => {
+      const at = j.retryAt ? new Date(j.retryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
       const status = j.status === "done" ? pill("Done", "done") : j.status === "failed" ? pill("Failed", "failed")
+        : j.status === "waiting" ? pill(at ? `Starts after ${at}` : "Waiting", "ready")
+        : j.status === "queued" ? pill("In line") 
         : `<span class="pill"><span class="spin" aria-hidden="true"></span>${esc(j.step || "Working")}</span>`;
       const extra = j.status === "done" ? `Added <strong>${esc(j.name)}</strong> to Demo ready`
-        : j.status === "failed" ? `<span class="err">${esc(j.error)}</span>` : "Working on it. This usually takes a few minutes.";
+        : j.status === "failed" ? `<span class="err">${esc(j.error)}</span>`
+        : j.status === "waiting" ? `Your Claude usage limit was reached. This builds automatically${at ? " after " + at : " when usage resets"}. Leave the laptop on.`
+        : j.status === "queued" ? "In line. It starts after the demo before it." : "Working on it. This usually takes a few minutes.";
       const acts = [
         j.status === "done" && j.demo ? `<a class="demo-link" href="/${esc(j.demo)}" target="_blank" rel="noopener">Open demo</a>` : "",
         j.status === "failed" ? `<button type="button" data-retry="${esc(j.id)}">Try again</button>` : "",
-        j.status === "done" || j.status === "failed" ? `<button type="button" data-dismiss="${esc(j.id)}" aria-label="Remove from list">✕</button>` : "",
+        j.status !== "working" ? `<button type="button" data-dismiss="${esc(j.id)}" aria-label="${j.status === "done" || j.status === "failed" ? "Remove from list" : "Cancel this request"}">✕</button>` : "",
       ].join("");
       return `<li><span class="req">${esc(j.request)}<small>${extra}</small></span><span class="acts">${status}${acts}</span></li>`;
     }).join("");
-    const busy = jobs.some(j => j.status === "working");
+    const busy = jobs.some(j => ["working", "queued", "waiting"].includes(j.status));
     $("agentBtn").textContent = busy ? "Add to queue" : "Create demo";
   }
 }

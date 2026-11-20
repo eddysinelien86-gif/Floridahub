@@ -79,7 +79,9 @@ To add the desktop icon the first time, run `./install-desktop-icon.sh`.
 "Lost in da Souse Kitchen, 8438 W Oakland Park Blvd, Sunrise FL", and click **Create demo**.
 The agent uses Claude Code on this computer to look the business up, writes `clients/<name>/site.config.json`,
 builds the site into `dist/`, and adds the business to the pipeline as **Demo ready** with an **Open demo** link.
-Each demo takes a few minutes and uses some of your Claude plan. Read the agent's notes (click the business)
+Each demo takes a few minutes and uses some of your Claude plan. If you hit your Claude usage limit, requests are not lost:
+they show **Starts after [time]** and build automatically once your usage resets (leave the laptop on and the studio running).
+You can keep adding businesses while it waits; they build one after another. Click ✕ to cancel one. Read the agent's notes (click the business)
 and check the details with the owner before you show it.
 
 The pipeline is **Lead → Demo ready → Demo sent → Proposal → Building → Live**. When you show a demo,
