@@ -38,6 +38,7 @@ ART_H = 28          # picture height on the jar
 ART_RAISE = 0.6     # picture stands out by this much
 ART_DETAIL = 0.8    # extra height for light parts of the picture
 TEXTURE = 0.35      # height of the swirl lines around the jar
+TEXT_SIZE = 3.6     # letter height of PUSH DOWN & TURN on the lid
 ART = "gta6_cutout.png"   # in printlab/inputs/
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -71,7 +72,7 @@ def thread(r_base, z0, turns, inward=False):
     return bar.warp(wrap)
 
 
-def toothed(r_root, depth, n, lock_ccw, extra=0.0, samples=6):
+def toothed(r_root, depth, n, lock_ccw, extra=0.0, samples=6, floor=0.0):
     """Outline of a click-tooth ring. lock_ccw=False: a pawl moving clockwise catches
     (tightening); lock_ccw=True: a pawl moving counter-clockwise catches (opening)."""
     pts = []
@@ -81,7 +82,7 @@ def toothed(r_root, depth, n, lock_ccw, extra=0.0, samples=6):
             f = j / samples * 0.9999
             b = depth * ((1 - f) if lock_ccw else f)
             t = k * d + f * d
-            r = r_root + b + extra
+            r = max(floor, r_root + b) + extra
             pts.append((r * math.cos(t), r * math.sin(t)))
     return np.array(pts)
 
@@ -153,7 +154,7 @@ lip_in = r_ic + 0.15
 outer += revolve([(r_os + 0.3, lip_apex + (r_os - lip_in) + 0.3), (lip_in, lip_apex),
                   (r_os + 0.3, skirt_end), (r_os + 0.3, skirt_end)])
 # pawls: three on the lower skirt (tighten), three keys just under the top (open when pushed)
-annulus = lambda lock: CrossSection([circle_pts(r_os + 0.3), toothed(r_ic - 0.3, RATCHET + 0.3, CLICKS, lock, 0.15)[::-1]], FillRule.EvenOdd)
+annulus = lambda lock: CrossSection([circle_pts(r_os + 0.3), toothed(r_ic - 0.3, RATCHET + 0.3, CLICKS, lock, 0.15, floor=r_ic)[::-1]], FillRule.EvenOdd)
 d = 2 * math.pi / CLICKS
 for i in range(3):
     a = i * 2 * math.pi / 3
@@ -163,7 +164,11 @@ for i in range(3):
     outer += Manifold.extrude(key, 1.6 + 0.01).translate([0, 0, -1.6])
 
 # three arc springs cut into the top, each with a post that rests on the inner cap
-r_sp, w_sp = 21.5, 4.0
+text_out = r_oo - 1.2                                    # lettering stays inside the edge bevel
+text_in = text_out - TEXT_SIZE - 0.3
+w_sp = 3.0 if r_oo < 30 else 4.0
+r_sp = text_in - 0.5 - 1.0 - w_sp / 2                      # springs just inside the lettering
+assert r_sp + 1.5 < r_ic, "springs must rest on the inner cap"
 for i in range(3):
     a0 = math.radians(i * 120 + 20)
     a1 = a0 + math.radians(70)
@@ -178,7 +183,7 @@ for i in range(3):
     outer += post.translate([r_sp * math.cos(pa), r_sp * math.sin(pa), 0])
 
 # engraved lettering + arrows on the top, medallion pocket in the middle
-MED_R = 17.5
+MED_R = r_sp - w_sp / 2 - 2.0
 outer -= Manifold.cylinder(1.0 + 0.01, MED_R, MED_R, SEG).translate([0, 0, TOP_T - 1.0])
 
 
@@ -216,16 +221,17 @@ def arc_arrow(r, a_from, a_to, depth=0.6, w=1.2):
     te = math.radians(a_to)
     sgn = 1 if a_to > a_from else -1
     tip = ((r) * math.cos(te + sgn * 0.12), (r) * math.sin(te + sgn * 0.12))
-    head = [((r + 2.2) * math.cos(te), (r + 2.2) * math.sin(te)), tip, ((r - 2.2) * math.cos(te), (r - 2.2) * math.sin(te))]
+    hw = min(2.2, TEXT_SIZE * 0.6)
+    head = [((r + hw) * math.cos(te), (r + hw) * math.sin(te)), tip, ((r - hw) * math.cos(te), (r - hw) * math.sin(te))]
     cs = CrossSection([band]) + CrossSection([np.array(head)])
     return Manifold.extrude(cs, depth + 0.01).translate([0, 0, TOP_T - depth])
 
 
-text_r = r_sp + w_sp / 2 + 1.0 + 3.2
-outer -= arc_text("PUSH DOWN & TURN", text_r, 3.6, 90, top=True)
-outer -= arc_text("TO OPEN", text_r - 3.4, 3.6, 270, top=False)
-outer -= arc_arrow(text_r - 1.6, 160, 205)      # left side: points down (counter-clockwise)
-outer -= arc_arrow(text_r - 1.6, -25, 20)       # right side: points up (counter-clockwise)
+outer -= arc_text("PUSH DOWN & TURN", text_out - 0.64 * TEXT_SIZE, TEXT_SIZE, 90, top=True)
+outer -= arc_text("TO OPEN", text_out - 0.36 * TEXT_SIZE, TEXT_SIZE, 270, top=False)
+mid = text_out - TEXT_SIZE / 2
+outer -= arc_arrow(mid, 160, 205, w=min(1.2, TEXT_SIZE * 0.35))      # left side: points down (counter-clockwise)
+outer -= arc_arrow(mid, -25, 20, w=min(1.2, TEXT_SIZE * 0.35))       # right side: points up (counter-clockwise)
 
 
 # ------------------------------------------------------------------ art: wrap + medallion
@@ -282,7 +288,7 @@ if os.path.isfile(src):
 medallion = None
 if art_w:
     md = 2 * MED_R - 0.4
-    mh = 25.0
+    mh = MED_R * 1.43
     mw = mh * aspect
     n = int(md / step)
     xs, ys = np.meshgrid(np.arange(n) * step, np.arange(n)[::-1] * step)
@@ -318,7 +324,7 @@ def make_labels(out_dir):
     label.save(os.path.join(out_dir, "gta6_cr_jar_wrap_label.png"), dpi=(dpi, dpi))
     d = mm(2 * MED_R - 0.4)
     disc = Image.new("RGB", (d, d), (20, 12, 45))
-    ah = mm(25)
+    ah = mm(MED_R * 1.43)
     art2 = Image.open(src).resize((round(ah * aspect), ah), Image.LANCZOS)
     disc.paste(art2, ((d - art2.width) // 2, (d - ah) // 2), art2)
     m = Image.new("L", (d, d), 0)
@@ -350,8 +356,10 @@ if __name__ == "__main__":
     make_labels(out)
     # interference check of the assembled lid at rest and pushed
     lid_z = ic_top - inner_top_local
+    # the spring posts are meant to press on the inner cap (the springs flex), so leave them out
+    rigid = outer - ring(r_sp + 2.5, r_sp - 2.5, 20).translate([0, 0, -20])
     for name, dz in (("at rest", 0), ("pushed", -PUSH)):
-        o = outer.translate([0, 0, lid_z + dz])
-        print(f"lid {name}: overlap with inner cap {(o ^ inner).volume():.2f} mm3, with jar {(o ^ jar).volume():.2f} mm3")
+        o = rigid.translate([0, 0, lid_z + dz])
+        print(f"lid {name}: collision with inner cap {(o ^ inner).volume():.2f} mm3, with jar {(o ^ jar).volume():.2f} mm3")
     print(f"inner cap vs jar threads overlap: {(inner ^ jar).volume():.2f} mm3")
     print(f"jar holds about {math.pi * (R - WALL) ** 2 * (BODY_H - BASE) / 1000 + math.pi * ri ** 2 * NECK_H / 1000:.0f} ml")
