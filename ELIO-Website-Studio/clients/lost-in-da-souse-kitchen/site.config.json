@@ -1,13 +1,12 @@
 {
   "business": {
     "name": "Lost in da Souse Kitchen",
-    "tagline": "Souse, smoke boxes and late-night comfort food in Atlanta",
-    "phone": "(404) 465-0421",
-    "address": "5307 Old National Hwy, Atlanta, GA 30349",
+    "tagline": "Late-night Southern comfort food in Sunrise, FL",
+    "address": "8438 W Oakland Park Blvd, Sunrise, FL 33351",
     "hours": [
       {
-        "days": "Every day",
-        "time": "Open late – call to confirm hours"
+        "days": "Open late",
+        "time": "Until 2 AM (confirm daily hours)"
       }
     ]
   },
@@ -17,8 +16,9 @@
   },
   "hero": {
     "headline": "Get lost in da souse.",
-    "subheadline": "Florida-style souse, loaded smoke boxes and late-night Southern-Caribbean comfort food on Old National Hwy.",
-    "ctaText": "Call to order"
+    "subheadline": "Atlanta's late-night favorite is now in Sunrise. Souse, loaded smoke boxes and Southern comfort food until 2 AM on Oakland Park Blvd.",
+    "ctaText": "Get directions",
+    "ctaLink": "https://www.google.com/maps/search/?api=1&query=8438+W+Oakland+Park+Blvd%2C+Sunrise%2C+FL+33351"
   },
   "servicesTitle": "Fan favorites",
   "services": [
@@ -39,11 +39,11 @@
       "description": "Crispy, seasoned and made for sharing."
     }
   ],
-  "about": "Lost in da Souse Kitchen is an Atlanta favorite with a huge Instagram following, where customers take a bite on camera and give their honest review. Come hungry, order a box and see what all the hype is about. (Demo text: confirm with the owner before launch.)",
+  "about": "Lost in da Souse Kitchen started in Atlanta, built a huge Instagram following with its on-camera food reviews, and has expanded into Broward County. Come hungry, order a box and see what the hype is about. (Demo text: confirm with the owner.)",
   "testimonials": [],
   "seo": {
-    "title": "Lost in da Souse Kitchen | Souse & Smoke Boxes in Atlanta",
-    "description": "Florida-style souse, smoke boxes, dog boxes and late-night comfort food at 5307 Old National Hwy, Atlanta."
+    "title": "Lost in da Souse Kitchen | Late-Night Food in Sunrise, FL",
+    "description": "Souse, smoke boxes and late-night Southern comfort food at 8438 W Oakland Park Blvd, Sunrise, FL. Open until 2 AM."
   },
   "servicesNav": "Menu"
 }

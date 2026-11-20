@@ -51,8 +51,24 @@ Each finished site is one folder in `dist/`. Free or cheap options:
 
 Connect the client's domain in the host's settings, and HTTPS is set up automatically.
 
-## Your dashboard
-Double-click `dashboard/index.html` to open it in your browser. Nothing to install.
+## Your dashboard and demo agent
+**Start it:** double-click **ELIO Studio** on your desktop (or run `./start-studio.sh`). It opens at http://localhost:4321.
+To add the desktop icon the first time, run `./install-desktop-icon.sh`.
+
+**Demo agent:** type a business into the box at the top, for example
+"Lost in da Souse Kitchen, 8438 W Oakland Park Blvd, Sunrise FL", and click **Create demo**.
+The agent uses Claude Code on this computer to look the business up, writes `clients/<name>/site.config.json`,
+builds the site into `dist/`, and adds the business to the pipeline as **Demo ready** with an **Open demo** link.
+Each demo takes a few minutes and uses some of your Claude plan. Read the agent's notes (click the business)
+and check the details with the owner before you show it.
+
+The pipeline is **Lead → Demo ready → Demo sent → Proposal → Building → Live**. When you show a demo,
+move the business to **Demo sent**: the dashboard records the date.
+
+Your data is saved in `data/studio.json`. The server only accepts connections from this computer.
+
+You can still double-click `dashboard/index.html` directly; everything except the agent works that way,
+but that copy keeps its data separately inside the browser.
 - Track every business from **Lead → Demo sent → Proposal → Building → Live**
 - See monthly recurring income, fees won, open pipeline and follow-ups due
 - **TV mode** shows it full screen with large text, for a laptop plugged into a TV

@@ -7,38 +7,55 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap">
 <style>
-  /* Layout: KPI strip on top, sales pipeline board, then clients table + follow-ups side by side. */
+  /* Layout: agent request bar, KPI strip, pipeline board, then clients table + follow-ups. */
   :root {
     --bg: #f3f4f9; --panel: #ffffff; --ink: #141a2a; --muted: #5f6880; --line: #e1e4ee;
-    --brand: #5b3df5; --brand-soft: #ece8ff; --good: #12925e; --warn: #c27c0e; --bad: #c53b3b;
+    --brand: #5b3df5; --brand-ink: #ffffff; --brand-soft: #ece8ff; --good: #12925e; --warn: #b26f00; --bad: #c53b3b;
     --display: "Space Grotesk", system-ui, sans-serif; --body: "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-ink: #0d111c; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-ink: #0d111c; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+  a { color: var(--brand); }
   .app { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   h1 { font: 700 1.6rem var(--display); margin: 0; }
   h1 span { color: var(--brand); }
   h2 { font: 700 1.1rem var(--display); margin: 0 0 12px; }
   .tools { display: flex; gap: 8px; flex-wrap: wrap; }
-  button, .btn { font: 600 .9rem var(--body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
-  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  button { font: 600 .9rem var(--body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+  button:disabled { opacity: .55; cursor: default; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+  .agent { border: 2px solid var(--brand); }
+  .agent-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+  .agent-row textarea { flex: 1 1 320px; min-height: 64px; resize: vertical; }
+  .agent-row button { flex: 0 0 auto; padding-inline: 20px; }
+  .hint { color: var(--muted); font-size: .85rem; margin: 8px 0 0; }
+  .offline { background: var(--brand-soft); border-radius: 10px; padding: 12px 14px; font-size: .92rem; }
+  .offline code { background: var(--panel); padding: 1px 6px; border-radius: 4px; }
+  .jobs { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+  .jobs li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: var(--bg); flex-wrap: wrap; }
+  .jobs .req { min-width: 0; flex: 1 1 260px; overflow-wrap: anywhere; }
+  .jobs .req small { display: block; color: var(--muted); }
+  .jobs .err { color: var(--bad); }
+  .jobs .acts { display: flex; gap: 8px; align-items: center; }
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--brand); border-right-color: transparent; border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+  @media (prefers-reduced-motion: no-preference) { .spin { animation: spin .8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
   .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
   .kpi .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
   .kpi .value { font: 700 2rem var(--display); font-variant-numeric: tabular-nums; }
   .kpi .note { color: var(--muted); font-size: .85rem; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
-  .board { display: grid; grid-template-columns: repeat(5, minmax(170px, 1fr)); gap: 12px; overflow-x: auto; }
+  .board { display: grid; grid-template-columns: repeat(6, minmax(160px, 1fr)); gap: 12px; overflow-x: auto; }
   .col { background: var(--bg); border-radius: 10px; padding: 10px; min-height: 120px; }
-  .col h3 { font: 600 .85rem var(--body); margin: 0 0 8px; display: flex; justify-content: space-between; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .col h3 { font: 600 .8rem var(--body); margin: 0 0 8px; display: flex; justify-content: space-between; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
   .deal { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; }
   .deal strong { display: block; }
   .deal small { color: var(--muted); }
@@ -48,30 +65,31 @@
   th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
   td.num, th.num { text-align: right; }
+  tr[data-id] { cursor: pointer; }
   .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .78rem; font-weight: 600; background: var(--brand-soft); color: var(--brand); }
-  .pill.live { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
-  .pill.lost { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+  .pill.live, .pill.done { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+  .pill.failed { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+  .pill.ready { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
   .follow { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-  .follow li { display: flex; justify-content: space-between; gap: 8px; padding: 10px; border-radius: 8px; background: var(--bg); }
+  .follow li { display: flex; justify-content: space-between; gap: 8px; padding: 10px; border-radius: 8px; background: var(--bg); cursor: pointer; }
   .follow .due { font-weight: 600; white-space: nowrap; }
   .follow .overdue { color: var(--bad); }
   .follow .today { color: var(--warn); }
   .empty { color: var(--muted); }
-  .banner { background: var(--brand-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
-  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); width: min(520px, calc(100vw - 32px)); padding: 22px; }
+  .banner { background: var(--brand-soft); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); width: min(560px, calc(100vw - 32px)); padding: 22px; }
   dialog::backdrop { background: rgb(0 0 0 / .45); }
   form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   form.grid label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
   form.grid .full { grid-column: 1 / -1; }
   input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
-  .actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-  /* TV mode: bigger everything, no editing chrome. */
+  .actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .demo-link { font-weight: 600; }
   body.tv { font-size: 20px; }
-  body.tv .tools button:not(#tvBtn) { display: none; }
+  body.tv .tools button:not(#tvBtn), body.tv .agent { display: none; }
   body.tv .kpi .value { font-size: 3rem; }
   @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
   @media (max-width: 520px) { form.grid { grid-template-columns: 1fr; } }
-  @media (prefers-reduced-motion: no-preference) { .deal { transition: transform .12s; } .deal:hover { transform: translateY(-2px); } }
 </style>
 </head>
 <body>
@@ -87,6 +105,22 @@
     </div>
   </header>
 
+  <section class="panel agent" aria-labelledby="agentTitle">
+    <h2 id="agentTitle">Demo agent</h2>
+    <div id="agentOn" hidden>
+      <form class="agent-row" id="agentForm">
+        <textarea id="agentInput" placeholder="Which business? e.g. Lost in da Souse Kitchen, 8438 W Oakland Park Blvd, Sunrise FL. Add anything you know: phone, menu, colors."></textarea>
+        <button class="primary" type="submit" id="agentBtn">Create demo</button>
+      </form>
+      <p class="hint">The agent looks the business up online, builds the demo website and adds it to your pipeline as <strong>Demo ready</strong>. It takes a few minutes; you can keep working.</p>
+      <ul class="jobs" id="jobs"></ul>
+    </div>
+    <div class="offline" id="agentOff">
+      The agent works when the dashboard is opened through the studio app. Double-click <strong>ELIO Studio</strong> on your desktop,
+      or run <code>./start-studio.sh</code> in the ELIO-Website-Studio folder. Everything else on this page works as usual.
+    </div>
+  </section>
+
   <div class="banner" id="sampleBanner" hidden>These are <strong>example</strong> entries so you can see how it works. <button id="clearSamples">Clear examples</button></div>
 
   <section class="kpis" id="kpis"></section>
@@ -100,7 +134,7 @@
     <section class="panel">
       <h2>All clients &amp; leads</h2>
       <div class="table-wrap"><table>
-        <thead><tr><th>Business</th><th>Stage</th><th>Package</th><th class="num">Build fee</th><th class="num">Monthly</th><th>Next step</th></tr></thead>
+        <thead><tr><th>Business</th><th>Stage</th><th>Demo</th><th>Package</th><th class="num">Build fee</th><th class="num">Monthly</th><th>Next step</th></tr></thead>
         <tbody id="rows"></tbody>
       </table></div>
     </section>
@@ -117,13 +151,15 @@
     <label class="full">Business name<input id="f-name" name="name" required></label>
     <label>Contact person<input id="f-contact" name="contact"></label>
     <label>Phone or email<input id="f-reach" name="reach"></label>
+    <label class="full">Address<input id="f-address" name="address"></label>
     <label>Stage<select id="f-stage" name="stage"></select></label>
     <label>Package<select id="f-package" name="package"><option>Starter</option><option>Business</option><option>Custom</option></select></label>
     <label>Build fee ($)<input id="f-fee" name="fee" type="number" min="0" step="1"></label>
     <label>Care plan ($/month)<input id="f-monthly" name="monthly" type="number" min="0" step="1"></label>
-    <label>Next step<input id="f-next" name="next" placeholder="e.g. Send demo link"></label>
+    <label>Next step<input id="f-next" name="next" placeholder="e.g. Show demo to owner"></label>
     <label>Follow-up date<input id="f-due" name="due" type="date"></label>
-    <label class="full">Notes<textarea id="f-notes" name="notes" rows="2"></textarea></label>
+    <label class="full">Notes<textarea id="f-notes" name="notes" rows="4"></textarea></label>
+    <p class="full" id="dlgDemo" hidden></p>
     <div class="actions full">
       <button type="button" id="delBtn">Delete</button>
       <span style="display:flex;gap:8px"><button type="button" id="cancelBtn">Cancel</button><button class="primary" type="submit">Save</button></span>
@@ -132,11 +168,13 @@
 </dialog>
 
 <script>
-const STAGES = ["Lead", "Demo sent", "Proposal", "Building", "Live"];
+const STAGES = ["Lead", "Demo ready", "Demo sent", "Proposal", "Building", "Live"];
 const KEY = "elio-dashboard-v1";
 const money = n => "$" + Math.round(n || 0).toLocaleString();
 const today = () => new Date().toISOString().slice(0, 10);
 const addDays = d => { const x = new Date(); x.setDate(x.getDate() + d); return x.toISOString().slice(0, 10); };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const $ = id => document.getElementById(id);
 
 const SAMPLES = [
   { id: 1, sample: true, name: "Example: Sunshine Plumbing", contact: "Owner", stage: "Live", package: "Business", fee: 1200, monthly: 49, next: "Monthly update", due: addDays(12) },
@@ -146,94 +184,187 @@ const SAMPLES = [
   { id: 5, sample: true, name: "Example: Ocean Nails", stage: "Lead", package: "Starter", fee: 499, monthly: 49, next: "Build demo", due: addDays(1) },
 ];
 
-let items;
-try { items = JSON.parse(localStorage.getItem(KEY)); } catch (e) { items = null; }
-if (!Array.isArray(items)) items = SAMPLES.slice();
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} };
+// Two modes: "server" when opened through the studio app (http://localhost:4321), "local" when opened as a file.
+let mode = "local", items = [], jobs = [];
+const localRead = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(v) ? v : null; } catch (e) { return null; } };
+const localWrite = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} };
 
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const pill = s => `<span class="pill ${s === "Live" ? "live" : ""}">${esc(s)}</span>`;
+async function boot() {
+  if (location.protocol.startsWith("http")) {
+    try {
+      const r = await fetch("/api/state", { cache: "no-store" });
+      if (r.ok) {
+        const s = await r.json();
+        mode = "server"; items = s.items; jobs = s.jobs;
+        // First time on the studio app: bring over entries made earlier in this browser.
+        const old = localRead();
+        if (!s.imported && !items.length) {
+          items = old && old.some(i => !i.sample) ? old.filter(i => !i.sample) : SAMPLES.slice();
+          await save({ imported: true });
+        }
+      }
+    } catch (e) {}
+  }
+  if (mode === "local") items = localRead() || SAMPLES.slice();
+  $("agentOn").hidden = mode !== "server";
+  $("agentOff").hidden = mode === "server";
+  render();
+  if (mode === "server") poll();
+}
+
+async function save(extra = {}) {
+  if (mode === "server") {
+    try { await fetch("/api/items", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ items, ...extra }) }); } catch (e) {}
+  } else localWrite();
+}
+
+let pollTimer;
+async function poll() {
+  clearTimeout(pollTimer);
+  try {
+    const s = await (await fetch("/api/state", { cache: "no-store" })).json();
+    const before = JSON.stringify(jobs.map(j => j.status));
+    jobs = s.jobs;
+    // When a job finishes, the server has added the business; take its list.
+    if (before !== JSON.stringify(jobs.map(j => j.status))) items = s.items;
+    render();
+  } catch (e) {}
+  const busy = jobs.some(j => j.status === "queued" || j.status === "working");
+  pollTimer = setTimeout(poll, busy ? 3000 : 20000);
+}
+
+const stageCls = s => s === "Live" ? "live" : s === "Demo ready" ? "ready" : "";
+const pill = (s, cls = stageCls(s)) => `<span class="pill ${cls}">${esc(s)}</span>`;
+const demoLink = i => i.demo && mode === "server" ? `<a class="demo-link" href="/${esc(i.demo)}" target="_blank" rel="noopener">Open demo</a>` : (i.demo ? `<span class="empty">${esc(i.demo)}</span>` : "—");
 
 function render() {
   const live = items.filter(i => i.stage === "Live");
   const mrr = live.reduce((a, i) => a + (+i.monthly || 0), 0);
   const earned = items.filter(i => i.stage === "Live" || i.stage === "Building").reduce((a, i) => a + (+i.fee || 0), 0);
-  const pipeline = items.filter(i => ["Lead", "Demo sent", "Proposal"].includes(i.stage)).reduce((a, i) => a + (+i.fee || 0), 0);
-  document.getElementById("kpis").innerHTML = [
-    ["Monthly recurring", money(mrr), `${live.length} site${live.length === 1 ? "" : "s"} on care plan`],
+  const demos = items.filter(i => i.demo).length;
+  const sent = items.filter(i => ["Demo sent", "Proposal", "Building", "Live"].includes(i.stage) && i.demo).length;
+  $("kpis").innerHTML = [
+    ["Monthly recurring", money(mrr), `${live.length} site${live.length === 1 ? "" : "s"} live`],
     ["Build fees won", money(earned), "Building + live"],
-    ["Open pipeline", money(pipeline), "Leads, demos, proposals"],
-    ["Sites live", live.length, `${items.length} businesses tracked`],
+    ["Demos made", demos, `${items.filter(i => i.stage === "Demo ready").length} waiting to be sent`],
+    ["Demos sent", sent, `${items.length} business${items.length === 1 ? "" : "es"} tracked`],
   ].map(([l, v, n]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
 
-  document.getElementById("board").innerHTML = STAGES.map(s => {
+  $("board").innerHTML = STAGES.map(s => {
     const list = items.filter(i => i.stage === s);
     return `<div class="col"><h3>${s}<span>${list.length}</span></h3>${list.map(i =>
       `<div class="deal" tabindex="0" data-id="${i.id}"><strong>${esc(i.name)}</strong><small>${esc(i.package)} · ${money(i.fee)}</small></div>`).join("") || '<div class="empty">None yet</div>'}</div>`;
   }).join("");
 
-  document.getElementById("rows").innerHTML = items.length ? items.map(i =>
-    `<tr class="deal-row" data-id="${i.id}" style="cursor:pointer"><td>${esc(i.name)}</td><td>${pill(i.stage)}</td><td>${esc(i.package)}</td><td class="num">${money(i.fee)}</td><td class="num">${i.monthly ? money(i.monthly) : "—"}</td><td>${esc(i.next)}</td></tr>`).join("")
-    : '<tr><td colspan="6" class="empty">No clients yet. Click "+ Add lead or client" to add your first one.</td></tr>';
+  $("rows").innerHTML = items.length ? items.map(i =>
+    `<tr data-id="${i.id}"><td>${esc(i.name)}</td><td>${pill(i.stage)}</td><td>${demoLink(i)}</td><td>${esc(i.package)}</td><td class="num">${money(i.fee)}</td><td class="num">${i.monthly ? money(i.monthly) : "—"}</td><td>${esc(i.next)}</td></tr>`).join("")
+    : '<tr><td colspan="7" class="empty">No clients yet. Ask the demo agent for one, or click "+ Add lead or client".</td></tr>';
 
   const t = today();
   const due = items.filter(i => i.due).sort((a, b) => a.due.localeCompare(b.due));
-  document.getElementById("follow").innerHTML = due.length ? due.map(i => {
+  $("follow").innerHTML = due.length ? due.map(i => {
     const cls = i.due < t ? "overdue" : i.due === t ? "today" : "";
     const label = i.due < t ? "Overdue" : i.due === t ? "Today" : new Date(i.due + "T00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    return `<li class="deal-row" data-id="${i.id}" style="cursor:pointer"><span>${esc(i.next || "Follow up")}<br><small class="empty">${esc(i.name)}</small></span><span class="due ${cls}">${label}</span></li>`;
+    return `<li data-id="${i.id}"><span>${esc(i.next || "Follow up")}<br><small class="empty">${esc(i.name)}</small></span><span class="due ${cls}">${label}</span></li>`;
   }).join("") : '<li class="empty">Nothing scheduled.</li>';
 
-  document.getElementById("sampleBanner").hidden = !items.some(i => i.sample);
+  $("sampleBanner").hidden = !items.some(i => i.sample);
+
+  if (mode === "server") {
+    $("jobs").innerHTML = jobs.slice(0, 8).map(j => {
+      const status = j.status === "done" ? pill("Done", "done") : j.status === "failed" ? pill("Failed", "failed")
+        : `<span class="pill"><span class="spin" aria-hidden="true"></span>${esc(j.step || "Working")}</span>`;
+      const extra = j.status === "done" ? `Added <strong>${esc(j.name)}</strong> to Demo ready`
+        : j.status === "failed" ? `<span class="err">${esc(j.error)}</span>` : "Working on it. This usually takes a few minutes.";
+      const acts = [
+        j.status === "done" && j.demo ? `<a class="demo-link" href="/${esc(j.demo)}" target="_blank" rel="noopener">Open demo</a>` : "",
+        j.status === "failed" ? `<button type="button" data-retry="${esc(j.id)}">Try again</button>` : "",
+        j.status === "done" || j.status === "failed" ? `<button type="button" data-dismiss="${esc(j.id)}" aria-label="Remove from list">✕</button>` : "",
+      ].join("");
+      return `<li><span class="req">${esc(j.request)}<small>${extra}</small></span><span class="acts">${status}${acts}</span></li>`;
+    }).join("");
+    const busy = jobs.some(j => j.status === "working");
+    $("agentBtn").textContent = busy ? "Add to queue" : "Create demo";
+  }
 }
 
-const dlg = document.getElementById("dlg"), form = document.getElementById("form");
-document.getElementById("f-stage").innerHTML = STAGES.map(s => `<option>${s}</option>`).join("");
-let editing = null;
+// ---------- agent ----------
+async function askAgent(text) {
+  const r = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ request: text }) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "The agent couldn't take that request.");
+  jobs.unshift(j); render(); poll();
+}
+$("agentForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("agentInput").value.trim();
+  if (!text) { $("agentInput").focus(); return; }
+  $("agentBtn").disabled = true;
+  try { await askAgent(text); $("agentInput").value = ""; }
+  catch (err) { $("agentInput").setCustomValidity(err.message); $("agentInput").reportValidity(); setTimeout(() => $("agentInput").setCustomValidity(""), 3000); }
+  $("agentBtn").disabled = false;
+});
+$("jobs").addEventListener("click", async e => {
+  const retry = e.target.closest("[data-retry]"), dismiss = e.target.closest("[data-dismiss]");
+  if (retry) { const j = jobs.find(x => x.id === retry.dataset.retry); if (j) await askAgent(j.request); }
+  if (dismiss) { await fetch("/api/jobs/" + encodeURIComponent(dismiss.dataset.dismiss), { method: "DELETE" }); jobs = jobs.filter(x => x.id !== dismiss.dataset.dismiss); render(); }
+});
+
+// ---------- edit dialog ----------
+const dlg = $("dlg"), form = $("form");
+$("f-stage").innerHTML = STAGES.map(s => `<option>${s}</option>`).join("");
+let editing = null, confirmDel = false;
+const FIELDS = ["name", "contact", "reach", "address", "stage", "package", "fee", "monthly", "next", "due", "notes"];
 function open(id) {
   editing = id ? items.find(i => i.id === id) : null;
-  form.reset();
-  document.getElementById("dlgTitle").textContent = editing ? "Edit " + editing.name : "Add lead or client";
-  document.getElementById("delBtn").hidden = !editing;
-  if (editing) for (const k of ["name", "contact", "reach", "stage", "package", "fee", "monthly", "next", "due", "notes"]) form.elements[k].value = editing[k] ?? "";
+  form.reset(); confirmDel = false; $("delBtn").textContent = "Delete";
+  $("dlgTitle").textContent = editing ? editing.name : "Add lead or client";
+  $("delBtn").hidden = !editing;
+  if (editing) for (const k of FIELDS) form.elements[k].value = editing[k] ?? "";
+  $("dlgDemo").hidden = !(editing && editing.demo);
+  if (editing && editing.demo) $("dlgDemo").innerHTML = "Demo website: " + demoLink(editing);
   dlg.showModal();
 }
-form.addEventListener("submit", e => {
+form.addEventListener("submit", () => {
   const d = Object.fromEntries(new FormData(form));
   d.fee = +d.fee || 0; d.monthly = +d.monthly || 0;
-  if (editing) Object.assign(editing, d, { sample: editing.sample && d.name.startsWith("Example") });
-  else items.push({ id: Date.now(), ...d });
+  if (editing) {
+    if (editing.stage !== "Demo sent" && d.stage === "Demo sent" && !editing.sentAt) d.sentAt = today();
+    Object.assign(editing, d, { sample: editing.sample && d.name.startsWith("Example") });
+  } else items.push({ id: Date.now(), ...d });
   save(); render();
 });
-let confirmDel = false;
-document.getElementById("delBtn").onclick = e => {
+$("delBtn").onclick = e => {
   if (!confirmDel) { confirmDel = true; e.target.textContent = "Click again to delete"; return; }
-  items = items.filter(i => i !== editing); confirmDel = false; e.target.textContent = "Delete";
+  items = items.filter(i => i !== editing);
   save(); render(); dlg.close();
 };
-document.getElementById("cancelBtn").onclick = () => dlg.close();
-document.getElementById("addBtn").onclick = () => open();
-document.addEventListener("click", e => { const el = e.target.closest("[data-id]"); if (el && !document.body.classList.contains("tv")) open(+el.dataset.id); });
+$("cancelBtn").onclick = () => dlg.close();
+$("addBtn").onclick = () => open();
+document.addEventListener("click", e => {
+  if (e.target.closest("a, button, .jobs")) return;
+  const el = e.target.closest("[data-id]");
+  if (el && !document.body.classList.contains("tv")) open(+el.dataset.id);
+});
 document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".deal")) open(+e.target.dataset.id); });
-document.getElementById("clearSamples").onclick = () => { items = items.filter(i => !i.sample); save(); render(); };
+$("clearSamples").onclick = () => { items = items.filter(i => !i.sample); save(); render(); };
 
-document.getElementById("exportBtn").onclick = () => {
+// ---------- backup ----------
+$("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
-  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `elio-backup-${today()}.json` });
-  a.click();
+  Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `elio-backup-${today()}.json` }).click();
 };
-document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
-document.getElementById("importFile").onchange = async e => {
+$("importBtn").onclick = () => $("importFile").click();
+$("importFile").onchange = async e => {
   try { const data = JSON.parse(await e.target.files[0].text()); if (Array.isArray(data)) { items = data; save(); render(); } } catch (err) {}
 };
-document.getElementById("tvBtn").onclick = async () => {
+$("tvBtn").onclick = async () => {
   const on = document.body.classList.toggle("tv");
-  document.getElementById("tvBtn").textContent = on ? "Exit TV mode" : "TV mode";
+  $("tvBtn").textContent = on ? "Exit TV mode" : "TV mode";
   try { if (on) await document.documentElement.requestFullscreen(); else if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) {}
 };
-// Keep the follow-up dates fresh on a TV left running all day.
 setInterval(render, 60 * 60 * 1000);
-render();
+boot();
 </script>
 </body>
 </html>
