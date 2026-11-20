@@ -1,2 +1,4 @@
 .venv/
 __pycache__/
+printlab/inputs/*
+!printlab/inputs/README.txt
