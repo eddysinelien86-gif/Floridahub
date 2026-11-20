@@ -26,8 +26,13 @@ def ensure_deps() -> None:
                if importlib.util.find_spec(m) is None]
     if missing:
         print("Installing Python packages:", ", ".join(missing))
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r",
-                               os.path.join(ROOT, "requirements.txt")])
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "-r",
+                            os.path.join(ROOT, "requirements.txt")])
+        if r.returncode != 0:
+            sys.exit("\nCouldn't install the Python packages. On Ubuntu/Debian, run from the "
+                     "Floridahub folder:\n  sudo apt install -y python3-venv\n"
+                     "  python3 -m venv .venv\n  .venv/bin/pip install -r printlab/requirements.txt\n"
+                     "  .venv/bin/python printlab/install_app.py")
 
 
 # ---------------------------------------------------------------- Windows
