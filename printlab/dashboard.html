@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Print Lab</title>
+<link rel="icon" href="/icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0e1116">
 <style>
   :root {
     --bg: #0e1116; --panel: #161b22; --panel-2: #1d232c; --line: #2a313c;
@@ -63,6 +66,7 @@
   .param small { grid-column: 1; color: var(--muted); font-size: .75rem; }
   .param .num { grid-row: 1 / span 2; grid-column: 2; display: flex; align-items: center; gap: .25rem; }
   .param input { width: 4.6rem; text-align: right; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .45rem; }
+  .param input.txt { width: 9rem; text-align: left; }
   .param input.changed { border-color: var(--warn); }
   .param .unit { color: var(--muted); font-size: .75rem; }
   .warns { margin: 0; padding-left: 1.1rem; color: var(--warn); font-size: .85rem; }
@@ -190,15 +194,20 @@ function select(name, quiet) {
   if (!(quiet && sameBuild)) showModel(d);
 }
 
+const unitFor = (p) => /degree|angle|°/i.test(p.comment) ? "°" : /\b(number of|count|how many)\b|%|percent/i.test(p.comment) ? (/%|percent/i.test(p.comment) ? "%" : "") : "mm";
+const changed = (i) => i.dataset.t === "text" ? i.value !== i.dataset.v : Number(i.value) !== Number(i.dataset.v);
+
 function renderParams(d) {
   if (!d.params.length) { $("params").innerHTML = `<p class="ok-line" style="color:var(--muted)">This design has no number parameters.</p>`; return; }
   $("params").innerHTML = d.params.map((p) => `
     <div class="param"><label for="p_${p.name}">${esc(p.name.toLowerCase().replace(/_/g, " "))}</label>
       <small>${esc(p.comment)}</small>
-      <span class="num"><input id="p_${p.name}" data-k="${p.name}" data-v="${p.value}" type="number" step="any" inputmode="decimal" value="${p.value}"><span class="unit">mm</span></span>
+      <span class="num">${p.type === "text"
+        ? `<input class="txt" id="p_${p.name}" data-k="${p.name}" data-t="text" data-v="${esc(p.value)}" type="text" maxlength="80" value="${esc(p.value)}">`
+        : `<input id="p_${p.name}" data-k="${p.name}" data-v="${p.value}" type="number" step="any" inputmode="decimal" value="${p.value}"><span class="unit">${unitFor(p)}</span>`}</span>
     </div>`).join("");
   $("params").querySelectorAll("input").forEach((i) => (i.oninput = () => {
-    i.classList.toggle("changed", Number(i.value) !== Number(i.dataset.v));
+    i.classList.toggle("changed", changed(i));
     $("build").textContent = $("params").querySelector(".changed") ? "Save & rebuild" : "Rebuild";
   }));
   $("build").textContent = "Rebuild";
@@ -316,7 +325,7 @@ $("printer").onchange = () => { try { localStorage.setItem("printlab.printer", $
 $("build").onclick = async () => {
   const d = state.current; if (!d) return;
   const params = {};
-  $("params").querySelectorAll("input").forEach((i) => { if (Number(i.value) !== Number(i.dataset.v)) params[i.dataset.k] = Number(i.value); });
+  $("params").querySelectorAll("input").forEach((i) => { if (changed(i)) params[i.dataset.k] = i.dataset.t === "text" ? i.value : Number(i.value); });
   $("build").disabled = true; const label = $("build").textContent; $("build").textContent = "Building…";
   try {
     const r = await fetch("/api/build", { method: "POST", headers: { "Content-Type": "application/json" },

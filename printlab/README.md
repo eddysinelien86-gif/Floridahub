@@ -1,4 +1,4 @@
-# printlab — design parts for the Bambu Lab printer
+# printlab: design anything for the Bambu Lab printer
 
 A small code-CAD toolkit plus a Claude Code agent (`.claude/agents/print-designer.md`)
 that designs printable parts from a plain-English description.
@@ -8,9 +8,26 @@ that designs printable parts from a plain-English description.
 In Claude Code, in this repo, just ask, e.g.:
 
 > Use the print-designer agent to make a wall hook for a 20 mm broom handle.
+> Make a lithophane of `printlab/inputs/beach.jpg`.
+> Design a twisty planter with a drainage hole and a saucer.
+> Turn my logo into a cookie cutter.
+
+It can do functional parts, text and signs, vases and other turned shapes, logos traced from images,
+lithophanes, organic shapes, edits to existing STL files, and Blender-driven sculpted
+models when Blender is installed on the laptop. Put photos/logos/STLs in `printlab/inputs/`.
 
 The agent writes `printlab/designs/<name>.py`, runs it, checks the preview and the
 printability report, and tells you which file to open and the slicer settings to use.
+
+## Put it on your desktop
+
+```bash
+python3 printlab/install_app.py          # desktop icon + app list (Windows, Mac, Linux)
+python3 printlab/install_app.py --remove # take it off again
+```
+
+Clicking **Print Lab** starts the dashboard in the background and opens it in its own
+window (Chrome, Edge or Brave app window when installed; otherwise your browser).
 
 ## Dashboard (laptop + TV)
 

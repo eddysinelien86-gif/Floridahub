@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import trimesh
-from manifold3d import CrossSection, JoinType, Manifold, OpType
+from manifold3d import CrossSection, FillRule, JoinType, Manifold, Mesh, OpType
 
 # --------------------------------------------------------------------------
 # Printer profiles (build volume in mm)
@@ -97,10 +97,6 @@ def hex_nut_trap(across_flats: float, h: float) -> Manifold:
     return Manifold.cylinder(h, d / 2, d / 2, 6)
 
 
-def text_plate_not_supported(*_a, **_k):  # pragma: no cover
-    raise NotImplementedError("Text: design in Blender or add the label in Bambu Studio.")
-
-
 def union(*parts: Manifold) -> Manifold:
     return Manifold.batch_boolean(list(parts), OpType.Add)
 
@@ -109,6 +105,210 @@ def on_bed(part: Manifold) -> Manifold:
     """Drop the part so its lowest point rests on Z=0 and centre it on X/Y."""
     lo, hi = _bounds(part)
     return part.translate([-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]])
+
+
+# --------------------------------------------------------------------------
+# Beyond boxes: text, turned shapes, organic shapes, images, existing meshes
+# --------------------------------------------------------------------------
+
+def text2d(s: str, size: float = 10, font: str = "DejaVu Sans", bold: bool = True,
+           halign: str = "left") -> CrossSection:
+    """Outline of text as a 2D CrossSection (size = cap height-ish, mm)."""
+    from matplotlib.font_manager import FontProperties
+    from matplotlib.textpath import TextPath
+    tp = TextPath((0, 0), s, size=size,
+                  prop=FontProperties(family=font, weight="bold" if bold else "normal"))
+    polys = []
+    for p in tp.to_polygons():
+        p = np.asarray(p, dtype=float)
+        if len(p) > 1 and np.allclose(p[0], p[-1]):
+            p = p[:-1]
+        if len(p) >= 3:
+            polys.append(p)
+    cs = CrossSection(polys, FillRule.EvenOdd)
+    if halign in ("center", "right") and not cs.is_empty():
+        b = cs.bounds()
+        w = b[2] - b[0]
+        cs = cs.translate([-(b[0] + (w / 2 if halign == "center" else w)), 0])
+    return cs
+
+
+def text(s: str, size: float = 10, height: float = 2, **kw) -> Manifold:
+    """Raised 3D text standing on Z=0. Add it on top of a part to emboss it, or
+    subtract it to engrave. Keep letters >= 5 mm tall and strokes >= 0.8 mm."""
+    return Manifold.extrude(text2d(s, size, **kw), height)
+
+
+def revolve(profile, degrees: float = 360) -> Manifold:
+    """Spin a 2D profile [(radius, z), ...] around the Z axis: vases, cups, knobs,
+    bottles, chess pieces, wheels. Radius values must be >= 0."""
+    return Manifold.revolve(CrossSection([np.asarray(profile, float)]), SEGMENTS, degrees)
+
+
+def hull(*parts: Manifold) -> Manifold:
+    """Convex hull, the shrink-wrap around all parts. Great for smooth organic blends."""
+    return Manifold.batch_hull(list(parts))
+
+
+def smooth(part: Manifold, subdivisions: int = 3, sharp_angle: float = 60) -> Manifold:
+    """Round off a blocky shape into a soft, organic one (edges sharper than
+    `sharp_angle` degrees are kept)."""
+    return part.smooth_out(sharp_angle).refine(subdivisions)
+
+
+def sdf(f, bounds, resolution: float = 0.5) -> Manifold:
+    """Organic/mathematical shape from a signed distance function f(x, y, z) that is
+    POSITIVE INSIDE the shape. bounds = (xmin, ymin, zmin, xmax, ymax, zmax).
+    Example sphere: sdf(lambda x, y, z: 10 - (x*x + y*y + z*z) ** 0.5, (-11,)*3 + (11,)*3)."""
+    return Manifold.level_set(f, list(bounds), resolution)
+
+
+def smooth_union(a: float, b: float, k: float = 4.0) -> float:
+    """For sdf(): blend two positive-inside distances with a fillet of about k mm."""
+    h = max(k - abs(a - b), 0.0) / k
+    return max(a, b) + h * h * k * 0.25
+
+
+def scale_to(part: Manifold, x: float | None = None, y: float | None = None,
+             z: float | None = None) -> Manifold:
+    """Uniformly scale so the part is exactly x (or y, or z) mm in that direction."""
+    lo, hi = _bounds(part)
+    size = hi - lo
+    for target, k in ((x, 0), (y, 1), (z, 2)):
+        if target:
+            return part.scale([target / size[k]] * 3)
+    return part
+
+
+def from_trimesh(mesh: trimesh.Trimesh) -> Manifold:
+    mesh = mesh.copy()
+    mesh.merge_vertices()
+    m = Manifold(Mesh(np.ascontiguousarray(mesh.vertices, dtype=np.float32),
+                      np.ascontiguousarray(mesh.faces, dtype=np.uint32)))
+    if m.is_empty():
+        trimesh.repair.fill_holes(mesh)
+        trimesh.repair.fix_normals(mesh)
+        m = Manifold(Mesh(np.ascontiguousarray(mesh.vertices, dtype=np.float32),
+                          np.ascontiguousarray(mesh.faces, dtype=np.uint32)))
+    if m.is_empty():
+        raise ValueError(f"mesh is not watertight ({m.status()}); repair it in Blender first")
+    return m
+
+
+def load_mesh(path: str) -> Manifold:
+    """Import an existing STL/3MF/OBJ/PLY (a download, a Blender export, a scan) so it
+    can be cut, combined, resized, hollowed or given mounting holes."""
+    return from_trimesh(trimesh.load(path, force="mesh"))
+
+
+def _load_gray(path: str, max_px: int) -> np.ndarray:
+    from PIL import Image, ImageOps
+    img = ImageOps.exif_transpose(Image.open(path)).convert("L")
+    img.thumbnail((max_px, max_px))
+    return np.asarray(img, dtype=float) / 255.0
+
+
+def image_outline(path: str, width: float, threshold: float = 0.5,
+                  invert: bool = False) -> CrossSection:
+    """Trace the dark parts of a logo/drawing/silhouette (PNG/JPG) into a 2D shape
+    `width` mm wide. invert=True traces the light parts instead."""
+    import contourpy
+    g = _load_gray(path, 800)
+    ink = (g > threshold) if invert else (g < threshold)
+    ink = np.pad(ink.astype(float), 1)
+    lines = contourpy.contour_generator(z=ink).lines(0.5)
+    h_px, w_px = ink.shape
+    k = width / w_px
+    polys = [np.column_stack([l[:, 0] * k, (h_px - l[:, 1]) * k]) for l in lines if len(l) >= 4]
+    return CrossSection(polys, FillRule.EvenOdd).simplify(k * 0.3)
+
+
+def image_extrude(path: str, width: float, height: float, **kw) -> Manifold:
+    """Logo/drawing to a 3D badge, stamp, cookie-cutter blank, wall art layer."""
+    return Manifold.extrude(image_outline(path, width, **kw), height)
+
+
+def heightmap(z: np.ndarray, width: float, base: float = 0.0) -> Manifold:
+    """Watertight solid from a 2D array of heights in mm (row 0 = back edge)."""
+    z = np.asarray(z, float) + base
+    ny, nx = z.shape
+    k = width / (nx - 1)
+    xs, ys = np.meshgrid(np.arange(nx) * k, (ny - 1 - np.arange(ny)) * k)
+    top = np.column_stack([xs.ravel(), ys.ravel(), z.ravel()])
+    bot = top.copy(); bot[:, 2] = 0
+    verts = np.vstack([top, bot])
+    n = nx * ny
+    idx = np.arange(n).reshape(ny, nx)
+    a, b, c, d = idx[:-1, :-1].ravel(), idx[:-1, 1:].ravel(), idx[1:, :-1].ravel(), idx[1:, 1:].ravel()
+    faces = [np.column_stack([a, c, b]), np.column_stack([b, c, d]),              # top (normals up)
+             np.column_stack([a + n, b + n, c + n]), np.column_stack([b + n, d + n, c + n])]  # bottom
+    for edge, flip in ((idx[0, :], True), (idx[-1, :], False), (idx[:, 0], False), (idx[:, -1], True)):
+        e0, e1 = edge[:-1], edge[1:]
+        q = [np.column_stack([e0, e1, e0 + n]), np.column_stack([e1, e1 + n, e0 + n])]
+        faces += [f[:, ::-1] for f in q] if flip else q
+    mesh = trimesh.Trimesh(verts, np.vstack(faces), process=False)
+    if mesh.volume < 0:
+        mesh.invert()
+    return from_trimesh(mesh)
+
+
+def lithophane(path: str, width: float = 100, min_t: float = 0.8, max_t: float = 3.2,
+               px_mm: float = 0.25) -> Manifold:
+    """Photo lithophane: dark pixels thick, light pixels thin. Lies flat as built; print it
+    standing upright (rotate([90, 0, 0])) in white PLA at 0.12 mm layers, 100% infill,
+    and hold it up to a light."""
+    from PIL import Image
+    g = _load_gray(path, 2000)
+    nx = max(2, int(width / px_mm))
+    ny = max(2, int(nx * g.shape[0] / g.shape[1]))
+    g = np.asarray(Image.fromarray((g * 255).astype(np.uint8)).resize((nx, ny)), float) / 255
+    return heightmap(min_t + (1 - g) * (max_t - min_t), width)
+
+
+def find_blender() -> str | None:
+    import glob
+    import shutil
+    hit = shutil.which("blender")
+    if hit:
+        return hit
+    pats = [r"C:\Program Files\Blender Foundation\Blender*\blender.exe",
+            "/Applications/Blender.app/Contents/MacOS/Blender",
+            "/snap/bin/blender", os.path.expanduser("~/blender*/blender")]
+    for p in pats:
+        found = sorted(glob.glob(p))
+        if found:
+            return found[-1]
+    return None
+
+
+def blender_model(bpy_code: str, workdir: str = "out") -> Manifold:
+    """Run bpy code in Blender (headless) to build sculpted/organic geometry with
+    modifiers, then bring every mesh object back as one Manifold.
+    The code starts from an EMPTY scene, units are mm, and `bpy` is imported."""
+    import subprocess
+    import tempfile
+    exe = find_blender()
+    if not exe:
+        raise RuntimeError("Blender not found; install it or add it to PATH")
+    os.makedirs(workdir, exist_ok=True)
+    out = os.path.abspath(os.path.join(workdir, "_blender_export.stl"))
+    script = ("import bpy\nbpy.ops.wm.read_factory_settings(use_empty=True)\n"
+              + bpy_code +
+              "\nbpy.ops.object.select_all(action='DESELECT')\n"
+              "for o in bpy.data.objects:\n"
+              "    if o.type == 'MESH': o.select_set(True)\n"
+              f"bpy.ops.wm.stl_export(filepath={out!r}, export_selected_objects=True, "
+              "apply_modifiers=True, global_scale=1.0)\n")
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
+        f.write(script)
+    try:
+        r = subprocess.run([exe, "-b", "--factory-startup", "--python", f.name],
+                           capture_output=True, text=True, timeout=600)
+    finally:
+        os.unlink(f.name)
+    if not os.path.isfile(out):
+        raise RuntimeError("Blender export failed:\n" + (r.stdout + r.stderr)[-3000:])
+    return load_mesh(out)
 
 
 # --------------------------------------------------------------------------
@@ -213,6 +413,10 @@ def render_png(parts: dict, path: str) -> None:
             setlim(mid[k] - span, mid[k] + span)
         ax.set_box_aspect((1, 1, 1))
         ax.view_init(elev=elev, azim=azim)
+        if elev == 90:
+            ax.set_proj_type("ortho")
+            ax.set_zticks([])
+            ax.set_zlabel("")
         ax.set_title(title)
         ax.set_xlabel("X mm"); ax.set_ylabel("Y mm"); ax.set_zlabel("Z mm")
     fig.tight_layout()

@@ -27,7 +27,7 @@ DESIGNS = os.path.join(ROOT, "designs")
 OUT = os.path.join(ROOT, "out")
 PRINTERS = ["P1S", "P1P", "P2S", "X1C", "X1E", "A1", "A1mini", "H2D"]
 NAME_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
-PARAM_RE = re.compile(r"^(?P<name>[A-Z][A-Z0-9_]*)(?P<sp>\s*=\s*)(?P<value>[-+]?\d+(?:\.\d+)?)(?P<rest>\s*(?:#\s*(?P<comment>.*))?)$")
+PARAM_RE = re.compile(r'^(?P<name>[A-Z][A-Z0-9_]*)(?P<sp>\s*=\s*)(?P<value>[-+]?\d+(?:\.\d+)?|"[^"\\]{0,80}")(?P<rest>\s*(?:#\s*(?P<comment>.*))?)$')
 _build_lock = threading.Lock()
 
 
@@ -46,7 +46,10 @@ def read_params(src: str) -> list[dict]:
     for line in src.splitlines():
         m = PARAM_RE.match(line)
         if m:
-            params.append({"name": m["name"], "value": float(m["value"]),
+            raw = m["value"]
+            is_text = raw.startswith('"')
+            params.append({"name": m["name"], "type": "text" if is_text else "number",
+                           "value": raw[1:-1] if is_text else float(raw),
                            "comment": (m["comment"] or "").strip()})
     return params
 
@@ -57,8 +60,12 @@ def write_params(src: str, values: dict) -> str:
         body = line.rstrip("\r\n")
         m = PARAM_RE.match(body)
         if m and m["name"] in values:
-            v = float(values[m["name"]])
-            txt = str(int(v)) if v.is_integer() else repr(round(v, 4))
+            if m["value"].startswith('"'):
+                clean = re.sub(r"[\x00-\x1f\x7f]", " ", str(values[m["name"]]))
+                txt = json.dumps(clean.replace('"', "'").replace("\\", "/")[:80], ensure_ascii=False)
+            else:
+                v = float(values[m["name"]])
+                txt = str(int(v)) if v.is_integer() else repr(round(v, 4))
             line = f"{m['name']}{m['sp']}{txt}{m['rest']}" + line[len(body):]
         out.append(line)
     return "".join(out)
@@ -73,6 +80,7 @@ def describe(name: str) -> dict:
         doc = ""
     title, _, notes = doc.partition("\n")
     title = title.strip().rstrip(".")
+    notes = "\n\n".join(" ".join(par.split()) for par in notes.strip().split("\n\n"))
     report = None
     rp = os.path.join(OUT, f"{name}_report.json")
     if os.path.isfile(rp):
@@ -158,6 +166,13 @@ class Handler(BaseHTTPRequestHandler):
         if p in ("/", "/index.html"):
             html = open(os.path.join(ROOT, "dashboard.html"), "rb").read()
             return self._send(200, html, "text/html; charset=utf-8")
+        if p in ("/favicon.ico", "/icon.png"):
+            return self._send(200, open(os.path.join(ROOT, "assets", "printlab.png"), "rb").read(), "image/png")
+        if p == "/manifest.webmanifest":
+            return self._json({"name": "Print Lab", "short_name": "Print Lab", "start_url": "/",
+                               "display": "standalone", "background_color": "#0e1116",
+                               "theme_color": "#0e1116",
+                               "icons": [{"src": "/icon.png", "sizes": "1024x1024", "type": "image/png"}]})
         if p == "/api/designs":
             return self._json({"designs": list_designs(), "printers": PRINTERS,
                                "default_printer": os.environ.get("BAMBU_PRINTER", "P1S")})
@@ -189,10 +204,12 @@ class Handler(BaseHTTPRequestHandler):
                 return
             printer = data.get("printer") if data.get("printer") in PRINTERS else "P1S"
             params = data.get("params") or {}
+            kinds = {p["name"]: p["type"] for p in read_params(open(design_path(name), encoding="utf-8").read())}
             try:
-                params = {k: float(v) for k, v in params.items() if re.match(r"^[A-Z][A-Z0-9_]*$", k)}
+                params = {k: (str(v) if kinds[k] == "text" else float(v))
+                          for k, v in params.items() if k in kinds}
             except (TypeError, ValueError):
-                return self._json({"ok": False, "log": "Parameters must be numbers."}, 400)
+                return self._json({"ok": False, "log": "Size parameters must be numbers."}, 400)
             if params:
                 path = design_path(name)
                 src = open(path, encoding="utf-8").read()
