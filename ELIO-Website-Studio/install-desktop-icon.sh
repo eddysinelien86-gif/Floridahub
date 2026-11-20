@@ -18,3 +18,16 @@ EOF
 chmod +x "$FILE"
 gio set "$FILE" metadata::trusted true 2>/dev/null || true
 echo "Added ELIO Studio to $DESKTOP"
+
+# Start the studio quietly every time you log in, so the dashboard and agent are always ready.
+AUTO="$HOME/.config/autostart"
+mkdir -p "$AUTO"
+cat > "$AUTO/elio-studio.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=ELIO Studio (background)
+Exec="$DIR/start-studio.sh" --no-open
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
+echo "ELIO Studio will now start automatically when you log in."

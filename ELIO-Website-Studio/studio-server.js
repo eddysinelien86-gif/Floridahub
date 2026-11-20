@@ -10,6 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { spawn, execFileSync } = require("child_process");
+const crypto = require("crypto");
 
 const ROOT = __dirname;
 const PORT = +process.env.PORT || 4321;
@@ -17,6 +18,8 @@ const DATA_DIR = path.join(ROOT, "data");
 const DATA_FILE = path.join(DATA_DIR, "studio.json");
 const INCOMING = path.join(ROOT, "clients", "_incoming");
 const AGENT_TIMEOUT_MS = 15 * 60 * 1000;
+const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
+const NETLIFY_API = process.env.NETLIFY_API || "https://api.netlify.com/api/v1";
 
 const CLAUDE_BIN =
   process.env.CLAUDE_BIN ||
@@ -256,17 +259,117 @@ function runJob(job) {
   });
 }
 
+
+// ---------- publishing (Netlify) ----------
+// Your Netlify token stays in data/settings.json on this computer and is never sent to the browser.
+function loadSettings() { try { return JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8")); } catch { return {}; } }
+function saveSettings(x) { fs.mkdirSync(DATA_DIR, { recursive: true }); fs.writeFileSync(SETTINGS_FILE, JSON.stringify(x, null, 2), { mode: 0o600 }); }
+
+async function netlify(method, url, body, headers = {}) {
+  const token = loadSettings().netlifyToken;
+  if (!token) throw new Error("Connect your Netlify account first.");
+  const r = await fetch(NETLIFY_API + url, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, ...(body && !Buffer.isBuffer(body) ? { "Content-Type": "application/json" } : {}), ...headers },
+    body: body ? (Buffer.isBuffer(body) ? body : JSON.stringify(body)) : undefined,
+  });
+  const text = await r.text();
+  let data; try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
+  if (r.status === 401) throw new Error("Netlify didn't accept your token. Paste a new one in Publishing settings.");
+  if (!r.ok) throw new Error(`Netlify error ${r.status}: ${String(data.message || data.error || text).slice(0, 200)}`);
+  return data;
+}
+
+function listFiles(dir, base = dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = path.join(dir, e.name);
+    return e.isDirectory() ? listFiles(full, base) : [{ full, rel: "/" + path.relative(base, full).split(path.sep).join("/") }];
+  });
+}
+
+async function publishItem(item) {
+  const dir = path.join(ROOT, "dist", item.slug || "");
+  if (!item.slug || !fs.existsSync(path.join(dir, "index.html"))) throw new Error("This business has no demo website to publish yet.");
+  let siteId = item.netlifySiteId;
+  if (siteId) {
+    try { await netlify("GET", `/sites/${siteId}`); } catch { siteId = null; }
+  }
+  if (!siteId) {
+    const name = `${slugify(item.name).slice(0, 40)}-demo-${crypto.randomBytes(3).toString("hex")}`;
+    const site = await netlify("POST", "/sites", { name });
+    siteId = site.id;
+    item.netlifySiteId = site.id;
+  }
+  const files = listFiles(dir);
+  const digests = {}, byHash = {};
+  for (const f of files) {
+    const h = crypto.createHash("sha1").update(fs.readFileSync(f.full)).digest("hex");
+    digests[f.rel] = h; byHash[h] = f;
+  }
+  const deploy = await netlify("POST", `/sites/${siteId}/deploys`, { files: digests });
+  for (const h of deploy.required || []) {
+    const f = byHash[h];
+    if (f) await netlify("PUT", `/deploys/${deploy.id}/files${f.rel.split("/").map(encodeURIComponent).join("/")}`, fs.readFileSync(f.full), { "Content-Type": "application/octet-stream" });
+  }
+  let d = deploy;
+  for (let i = 0; i < 30 && d.state !== "ready"; i++) {
+    if (d.state === "error") throw new Error("Netlify couldn't finish publishing. Try again.");
+    await new Promise((r) => setTimeout(r, 1000));
+    d = await netlify("GET", `/deploys/${deploy.id}`);
+  }
+  const site = await netlify("GET", `/sites/${siteId}`);
+  item.publicUrl = site.ssl_url || site.url || d.ssl_url || d.url;
+  item.publishedAt = new Date().toISOString();
+  return item;
+}
+
+async function unpublishItem(item) {
+  if (item.netlifySiteId) {
+    try { await netlify("DELETE", `/sites/${item.netlifySiteId}`); } catch (e) { if (!/404/.test(e.message)) throw e; }
+  }
+  delete item.netlifySiteId; delete item.publicUrl; delete item.publishedAt;
+  return item;
+}
+
 // ---------- routes ----------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const p = decodeURIComponent(url.pathname);
   try {
     if (p === "/" || p === "/index.html") return serveFile(res, path.join(ROOT, "dashboard", "index.html"));
-    if (p === "/api/state" && req.method === "GET") return send(res, 200, { ...state, agent: true, running });
+    if (p === "/api/state" && req.method === "GET") return send(res, 200, { ...state, agent: true, running, netlify: !!loadSettings().netlifyToken });
+    if (p === "/api/settings/netlify" && req.method === "POST") {
+      const body = await readBody(req);
+      const token = String(body.token || "").trim();
+      const settings = loadSettings();
+      if (!token) { delete settings.netlifyToken; saveSettings(settings); return send(res, 200, { ok: true, netlify: false }); }
+      settings.netlifyToken = token; saveSettings(settings);
+      try { await netlify("GET", "/user"); } catch (e) { delete settings.netlifyToken; saveSettings(settings); return send(res, 400, { error: e.message }); }
+      return send(res, 200, { ok: true, netlify: true });
+    }
+    const pub = /^\/api\/items\/(\d+)\/(publish|unpublish)$/.exec(p);
+    if (pub && req.method === "POST") {
+      const item = state.items.find((i) => String(i.id) === pub[1]);
+      if (!item) return send(res, 404, { error: "That business isn't on the dashboard any more." });
+      try {
+        await (pub[2] === "publish" ? publishItem(item) : unpublishItem(item));
+        save();
+        return send(res, 200, { item });
+      } catch (e) {
+        save();
+        return send(res, 400, { error: e.message });
+      }
+    }
     if (p === "/api/items" && req.method === "PUT") {
       const body = await readBody(req);
       if (!Array.isArray(body.items)) return send(res, 400, { error: "items must be a list" });
-      state.items = body.items;
+      // Keep publishing details the browser may not have yet.
+      const prev = new Map(state.items.map((i) => [String(i.id), i]));
+      state.items = body.items.map((i) => {
+        const o = prev.get(String(i.id)) || {};
+        for (const k of ["netlifySiteId", "publicUrl", "publishedAt", "slug", "demo"]) if (i[k] === undefined && o[k] !== undefined) i[k] = o[k];
+        return i;
+      });
       if (body.imported) state.imported = true;
       save();
       return send(res, 200, { ok: true });

@@ -85,7 +85,12 @@ and check the details with the owner before you show it.
 The pipeline is **Lead → Demo ready → Demo sent → Proposal → Building → Live**. When you show a demo,
 move the business to **Demo sent**: the dashboard records the date.
 
-Your data is saved in `data/studio.json`. The server only accepts connections from this computer.
+**Send a demo:** click **Send** next to a business. The first time, connect a free Netlify account (the
+dashboard walks you through it). **Put demo online** gives the demo a public link. Then text it (scan the QR code with your phone and
+Messages opens with the text ready), email it with Gmail, or copy the message. The business moves to
+**Demo sent** with a follow-up in 2 days. **Take offline** removes the public link if the owner says no.
+
+Your data is saved in `data/studio.json` (your Netlify token in `data/settings.json`; neither goes to GitHub). The server only accepts connections from this computer.
 
 You can still double-click `dashboard/index.html` directly; everything except the agent works that way,
 but that copy keeps its data separately inside the browser.

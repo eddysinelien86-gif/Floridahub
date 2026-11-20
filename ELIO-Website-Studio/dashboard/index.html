@@ -85,6 +85,19 @@
   input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
   .actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
   .demo-link { font-weight: 600; }
+  .row-acts { display: inline-flex; gap: 10px; align-items: center; }
+  button.small { padding: 4px 10px; font-size: .8rem; }
+  .send-step { display: grid; gap: 12px; }
+  .send-step + .send-step { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .linkbox { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .linkbox input { flex: 1 1 240px; font-weight: 600; }
+  .send-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .qr { display: grid; justify-items: center; gap: 8px; padding: 14px; border-radius: 10px; background: #fff; color: #111; }
+  .qr small { color: #444; text-align: center; max-width: 260px; }
+  .note { font-size: .85rem; color: var(--muted); margin: 0; }
+  .err-msg { color: var(--bad); font-weight: 600; margin: 0; }
+  .ok-msg { color: var(--good); font-weight: 600; margin: 0; }
+  ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
   body.tv { font-size: 20px; }
   body.tv .tools button:not(#tvBtn), body.tv .agent { display: none; }
   body.tv .kpi .value { font-size: 3rem; }
@@ -100,6 +113,7 @@
       <button class="primary" id="addBtn">+ Add lead or client</button>
       <button id="exportBtn">Save backup</button>
       <button id="importBtn">Load backup</button>
+      <button id="netlifyBtn" hidden>Publishing settings</button>
       <button id="tvBtn">TV mode</button>
       <input type="file" id="importFile" accept="application/json" hidden>
     </div>
@@ -116,8 +130,8 @@
       <ul class="jobs" id="jobs"></ul>
     </div>
     <div class="offline" id="agentOff">
-      The agent works when the dashboard is opened through the studio app. Double-click <strong>ELIO Studio</strong> on your desktop,
-      or run <code>./start-studio.sh</code> in the ELIO-Website-Studio folder. Everything else on this page works as usual.
+      <strong>You're on the offline copy of the dashboard.</strong> The demo agent and the Send button only work in the studio app.
+      <a href="http://localhost:4321/">Open the studio app</a>. If that link doesn't load, double-click <strong>ELIO Studio</strong> on your desktop first.
     </div>
   </section>
 
@@ -167,6 +181,65 @@
   </form>
 </dialog>
 
+<dialog id="sendDlg" aria-labelledby="sendTitle">
+  <h2 id="sendTitle">Send demo</h2>
+  <div class="send-step" id="stepOnline">
+    <strong>1. Put the demo online</strong>
+    <p class="note" id="onlineNote">Customers can't open a demo that's only on your laptop. This puts it on a free private web address you can share.</p>
+    <div class="linkbox" id="linkBox" hidden>
+      <input id="publicLink" readonly aria-label="Demo link">
+      <button type="button" id="copyLink">Copy link</button>
+      <a id="openPublic" href="#" target="_blank" rel="noopener">Open</a>
+    </div>
+    <div class="send-btns">
+      <button type="button" class="primary" id="publishBtn">Put demo online</button>
+      <button type="button" id="unpublishBtn" hidden>Take offline</button>
+    </div>
+    <p class="err-msg" id="publishErr" hidden></p>
+  </div>
+  <div class="send-step" id="stepSend">
+    <strong>2. Send it to the customer</strong>
+    <form class="grid" id="sendForm" onsubmit="return false">
+      <label>Customer phone<input id="s-phone" type="tel" placeholder="(305) 555-1234"></label>
+      <label>Customer email<input id="s-email" type="email" placeholder="owner@business.com"></label>
+      <label class="full">Message<textarea id="s-msg" rows="6"></textarea></label>
+    </form>
+    <div class="send-btns">
+      <button type="button" class="primary" id="textBtn">Text from my phone</button>
+      <button type="button" id="gmailBtn">Email with Gmail</button>
+      <button type="button" id="mailBtn">Other email app</button>
+      <button type="button" id="copyMsg">Copy message</button>
+    </div>
+    <div class="qr" id="qrBox" hidden>
+      <div id="qr"></div>
+      <small>Scan this with your phone's camera. Your Messages app opens with the text ready. Just press send.</small>
+    </div>
+    <p class="ok-msg" id="sentMsg" hidden></p>
+  </div>
+  <div class="actions" style="margin-top:18px"><span></span><button type="button" id="sendClose">Done</button></div>
+</dialog>
+
+<dialog id="netDlg" aria-labelledby="netTitle">
+  <h2 id="netTitle">Connect Netlify (free)</h2>
+  <p class="note">Netlify hosts your demo websites online so customers can open them. You do this once.</p>
+  <ol class="steps">
+    <li>Go to <a href="https://app.netlify.com/signup" target="_blank" rel="noopener">app.netlify.com/signup</a> and make a free account.</li>
+    <li>Click your profile picture, then <strong>User settings</strong> → <strong>Applications</strong>.</li>
+    <li>Under <strong>Personal access tokens</strong>, click <strong>New access token</strong>, name it "ELIO Studio", and copy it.</li>
+    <li>Paste it below and click <strong>Connect</strong>.</li>
+  </ol>
+  <form class="grid" id="netForm" style="margin-top:14px" onsubmit="return false">
+    <label class="full">Netlify token<input id="netToken" type="password" autocomplete="off" placeholder="Paste your token here"></label>
+  </form>
+  <p class="err-msg" id="netErr" hidden></p>
+  <p class="ok-msg" id="netOk" hidden>Connected. You can put demos online now.</p>
+  <div class="actions" style="margin-top:14px">
+    <button type="button" id="netDisconnect">Disconnect</button>
+    <span style="display:flex;gap:8px"><button type="button" id="netCancel">Close</button><button type="button" class="primary" id="netSave">Connect</button></span>
+  </div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const STAGES = ["Lead", "Demo ready", "Demo sent", "Proposal", "Building", "Live"];
 const KEY = "elio-dashboard-v1";
@@ -185,7 +258,7 @@ const SAMPLES = [
 ];
 
 // Two modes: "server" when opened through the studio app (http://localhost:4321), "local" when opened as a file.
-let mode = "local", items = [], jobs = [];
+let mode = "local", items = [], jobs = [], netlifyOn = false;
 const localRead = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(v) ? v : null; } catch (e) { return null; } };
 const localWrite = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} };
 
@@ -195,7 +268,7 @@ async function boot() {
       const r = await fetch("/api/state", { cache: "no-store" });
       if (r.ok) {
         const s = await r.json();
-        mode = "server"; items = s.items; jobs = s.jobs;
+        mode = "server"; items = s.items; jobs = s.jobs; netlifyOn = !!s.netlify;
         // First time on the studio app: bring over entries made earlier in this browser.
         const old = localRead();
         if (!s.imported && !items.length) {
@@ -208,6 +281,7 @@ async function boot() {
   if (mode === "local") items = localRead() || SAMPLES.slice();
   $("agentOn").hidden = mode !== "server";
   $("agentOff").hidden = mode === "server";
+  $("netlifyBtn").hidden = mode !== "server";
   render();
   if (mode === "server") poll();
 }
@@ -236,6 +310,9 @@ async function poll() {
 const stageCls = s => s === "Live" ? "live" : s === "Demo ready" ? "ready" : "";
 const pill = (s, cls = stageCls(s)) => `<span class="pill ${cls}">${esc(s)}</span>`;
 const demoLink = i => i.demo && mode === "server" ? `<a class="demo-link" href="/${esc(i.demo)}" target="_blank" rel="noopener">Open demo</a>` : (i.demo ? `<span class="empty">${esc(i.demo)}</span>` : "—");
+const demoCell = i => i.demo && mode === "server"
+  ? `<span class="row-acts">${demoLink(i)}<button type="button" class="small primary" data-send="${i.id}">${i.sentAt ? "Send again" : "Send"}</button></span>`
+  : demoLink(i);
 
 function render() {
   const live = items.filter(i => i.stage === "Live");
@@ -257,7 +334,7 @@ function render() {
   }).join("");
 
   $("rows").innerHTML = items.length ? items.map(i =>
-    `<tr data-id="${i.id}"><td>${esc(i.name)}</td><td>${pill(i.stage)}</td><td>${demoLink(i)}</td><td>${esc(i.package)}</td><td class="num">${money(i.fee)}</td><td class="num">${i.monthly ? money(i.monthly) : "—"}</td><td>${esc(i.next)}</td></tr>`).join("")
+    `<tr data-id="${i.id}"><td>${esc(i.name)}</td><td>${pill(i.stage)}</td><td>${demoCell(i)}</td><td>${esc(i.package)}</td><td class="num">${money(i.fee)}</td><td class="num">${i.monthly ? money(i.monthly) : "—"}</td><td>${esc(i.next)}</td></tr>`).join("")
     : '<tr><td colspan="7" class="empty">No clients yet. Ask the demo agent for one, or click "+ Add lead or client".</td></tr>';
 
   const t = today();
@@ -322,7 +399,7 @@ function open(id) {
   $("delBtn").hidden = !editing;
   if (editing) for (const k of FIELDS) form.elements[k].value = editing[k] ?? "";
   $("dlgDemo").hidden = !(editing && editing.demo);
-  if (editing && editing.demo) $("dlgDemo").innerHTML = "Demo website: " + demoLink(editing);
+  if (editing && editing.demo) $("dlgDemo").innerHTML = "Demo website: " + demoCell(editing) + (editing.publicUrl ? ` · <a href="${esc(editing.publicUrl)}" target="_blank" rel="noopener">Online link</a>` : "") + (editing.sentAt ? ` · Sent ${esc(editing.sentAt)}${editing.sentVia ? " by " + esc(editing.sentVia) : ""}` : "");
   dlg.showModal();
 }
 form.addEventListener("submit", () => {
@@ -348,6 +425,135 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".deal")) open(+e.target.dataset.id); });
 $("clearSamples").onclick = () => { items = items.filter(i => !i.sample); save(); render(); };
+
+// ---------- send demo ----------
+const sendDlg = $("sendDlg");
+let sending = null;
+const findPhone = s => (String(s || "").match(/\+?1?[\s.-]*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}/) || [""])[0].trim();
+const findEmail = s => (String(s || "").match(/[^\s@·,]+@[^\s@·,]+\.[a-z]{2,}/i) || [""])[0];
+function defaultMessage(i) {
+  return `Hi! This is ELIO Website Studio. I made a free preview of a new website for ${i.name}:\n\n${i.publicUrl || "[link]"}\n\nTake a look on your phone and let me know what you think. I can change anything you like: photos, colors, menu and prices. No cost to look!`;
+}
+function syncSend() {
+  const i = sending; if (!i) return;
+  const online = !!i.publicUrl;
+  $("linkBox").hidden = !online;
+  $("publicLink").value = i.publicUrl || "";
+  $("openPublic").href = i.publicUrl || "#";
+  $("publishBtn").textContent = online ? "Update online version" : "Put demo online";
+  $("unpublishBtn").hidden = !online;
+  $("onlineNote").textContent = !netlifyOn
+    ? "First connect your free Netlify account. It hosts demos online so customers can open them."
+    : online ? "Your demo is online. Click Update after changing the demo." : "Customers can't open a demo that's only on your laptop. This puts it on a free web address you can share.";
+  for (const id of ["textBtn", "gmailBtn", "mailBtn", "copyMsg"]) $(id).disabled = !online;
+  const msg = $("s-msg");
+  if (!msg.dataset.touched) msg.value = defaultMessage(i);
+}
+function openSend(id) {
+  sending = items.find(i => i.id === id);
+  if (!sending) return;
+  $("s-phone").value = findPhone(sending.reach);
+  $("s-email").value = findEmail(sending.reach);
+  $("s-msg").dataset.touched = "";
+  $("publishErr").hidden = true; $("sentMsg").hidden = true; $("qrBox").hidden = true; $("qr").innerHTML = "";
+  syncSend();
+  if (dlg.open) dlg.close();
+  sendDlg.showModal();
+}
+$("s-msg").addEventListener("input", e => { e.target.dataset.touched = "1"; });
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-send]");
+  if (b) { e.preventDefault(); e.stopPropagation(); openSend(+b.dataset.send); }
+}, true);
+$("sendClose").onclick = () => sendDlg.close();
+
+async function callItem(action) {
+  const r = await fetch(`/api/items/${sending.id}/${action}`, { method: "POST" });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Something went wrong.");
+  Object.assign(sending, j.item);
+  const idx = items.findIndex(i => i.id === sending.id); if (idx >= 0) items[idx] = sending;
+  render();
+}
+$("publishBtn").onclick = async () => {
+  if (!netlifyOn) { openNetlify(); return; }
+  const btn = $("publishBtn"); btn.disabled = true; $("publishErr").hidden = true;
+  btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Putting it online…';
+  try { await callItem("publish"); $("s-msg").dataset.touched = ""; }
+  catch (err) { $("publishErr").textContent = err.message; $("publishErr").hidden = false; }
+  btn.disabled = false; syncSend();
+};
+let confirmOff = false;
+$("unpublishBtn").onclick = async e => {
+  if (!confirmOff) { confirmOff = true; e.target.textContent = "Click again to take it offline"; return; }
+  confirmOff = false; e.target.textContent = "Take offline";
+  try { await callItem("unpublish"); } catch (err) { $("publishErr").textContent = err.message; $("publishErr").hidden = false; }
+  syncSend();
+};
+async function copy(text, btn) {
+  const old = btn.textContent;
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+  catch (e) { $("s-msg").select(); btn.textContent = "Press Ctrl+C"; }
+  setTimeout(() => { btn.textContent = old; }, 1800);
+}
+function markSent(via) {
+  const i = sending;
+  i.sentAt = today(); i.sentVia = via;
+  if (["Lead", "Demo ready"].includes(i.stage)) i.stage = "Demo sent";
+  i.next = "Follow up on demo"; i.due = addDays(2);
+  save(); render();
+  $("sentMsg").textContent = `Marked as sent by ${via}. A follow-up is on your list for ${new Date(i.due + "T00:00").toLocaleDateString(undefined, { weekday: "long" })}.`;
+  $("sentMsg").hidden = false;
+}
+$("copyLink").onclick = e => copy($("publicLink").value, e.target);
+$("copyMsg").onclick = e => { copy($("s-msg").value, e.target); markSent("copied message"); };
+$("gmailBtn").onclick = () => {
+  const to = $("s-email").value.trim();
+  const url = "https://mail.google.com/mail/?view=cm&fs=1" + (to ? "&to=" + encodeURIComponent(to) : "") +
+    "&su=" + encodeURIComponent(`A free website preview for ${sending.name}`) + "&body=" + encodeURIComponent($("s-msg").value);
+  window.open(url, "_blank", "noopener");
+  markSent("email");
+};
+$("mailBtn").onclick = () => {
+  const to = $("s-email").value.trim();
+  location.href = "mailto:" + encodeURIComponent(to) + "?subject=" + encodeURIComponent(`A free website preview for ${sending.name}`) + "&body=" + encodeURIComponent($("s-msg").value);
+  markSent("email");
+};
+$("textBtn").onclick = () => {
+  const phone = $("s-phone").value.replace(/[^\d+]/g, "");
+  if (!phone) { $("s-phone").setCustomValidity("Add the customer's phone number first."); $("s-phone").reportValidity(); setTimeout(() => $("s-phone").setCustomValidity(""), 2500); return; }
+  const sms = `sms:${phone}?&body=${encodeURIComponent($("s-msg").value)}`;
+  $("qr").innerHTML = ""; $("qrBox").hidden = false;
+  if (window.QRCode) new QRCode($("qr"), { text: sms, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.L });
+  else $("qr").innerHTML = '<p class="err-msg">The QR code needs an internet connection. Use Copy message and paste it into a text instead.</p>';
+  $("qrBox").querySelector("small").hidden = !window.QRCode;
+  markSent("text");
+};
+
+// ---------- Netlify settings ----------
+const netDlg = $("netDlg");
+function openNetlify() {
+  $("netErr").hidden = true; $("netOk").hidden = !netlifyOn; $("netToken").value = "";
+  $("netDisconnect").hidden = !netlifyOn;
+  netDlg.showModal();
+}
+$("netlifyBtn").onclick = openNetlify;
+$("netCancel").onclick = () => { netDlg.close(); if (sendDlg.open) syncSend(); };
+async function setToken(token) {
+  const r = await fetch("/api/settings/netlify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Couldn't connect.");
+  netlifyOn = j.netlify;
+}
+$("netSave").onclick = async () => {
+  const t = $("netToken").value.trim();
+  if (!t) { $("netToken").focus(); return; }
+  $("netSave").disabled = true; $("netErr").hidden = true;
+  try { await setToken(t); $("netOk").hidden = false; $("netDisconnect").hidden = false; setTimeout(() => { netDlg.close(); if (sendDlg.open) syncSend(); }, 900); }
+  catch (err) { $("netErr").textContent = err.message; $("netErr").hidden = false; }
+  $("netSave").disabled = false;
+};
+$("netDisconnect").onclick = async () => { await setToken(""); $("netOk").hidden = true; $("netDisconnect").hidden = true; };
 
 // ---------- backup ----------
 $("exportBtn").onclick = () => {
