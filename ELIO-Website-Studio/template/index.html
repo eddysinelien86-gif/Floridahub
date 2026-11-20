@@ -51,6 +51,7 @@
   header.site { position: sticky; top: 0; z-index: 20; background: rgb(255 255 255 / .96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
   header.site .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 72px; }
   .brand { font: var(--head-weight) 1.45rem var(--display); text-transform: var(--head-case); letter-spacing: var(--head-track); color: var(--primary); text-decoration: none; line-height: 1.1; }
+  .brand img { height: 46px; width: auto; max-width: 200px; object-fit: contain; display: block; }
   nav.links { display: flex; gap: 26px; align-items: center; }
   nav.links a { text-decoration: none; font-weight: 600; font-size: .98rem; }
   nav.links a:hover { color: var(--primary); }
@@ -223,7 +224,7 @@
 <script>document.documentElement.classList.add('js')</script>
 {{ANNOUNCE}}
 <header class="site"><div class="wrap">
-  <a class="brand" href="#top">{{NAME}}</a>
+  <a class="brand" href="#top">{{BRAND}}</a>
   <nav class="links" aria-label="Main">{{NAV}}</nav>
   {{HEADER_CTA}}
 </div></header>

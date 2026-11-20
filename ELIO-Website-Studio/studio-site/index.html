@@ -3,96 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Keystone Sites</title>
-<meta name="description" content="Professional websites for local businesses. Launched in days, not months.">
-<style>
-  :root { --ink: #0e1726; --muted: #5a6577; --brand: #5b3df5; --brand2: #13c2c2; --soft: #f5f6fb; }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--ink); line-height: 1.6; background: #fff; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
-  header .wrap { display: flex; justify-content: space-between; align-items: center; min-height: 68px; flex-wrap: wrap; gap: 12px; }
-  .logo { font-weight: 900; letter-spacing: .5px; font-size: 1.25rem; }
-  .logo span { color: var(--brand); }
-  nav { display: flex; gap: 20px; flex-wrap: wrap; }
-  nav a { color: var(--ink); text-decoration: none; font-weight: 500; }
-  .hero { padding: 90px 0 80px; background: linear-gradient(135deg, #f0edff, #e6fbfb); }
-  .hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.8rem); line-height: 1.1; margin: 0 0 18px; max-width: 800px; }
-  .hero p { font-size: 1.2rem; color: var(--muted); max-width: 640px; margin: 0 0 30px; }
-  .btn { display: inline-block; background: var(--brand); color: #fff; padding: 14px 26px; border-radius: 10px; font-weight: 700; text-decoration: none; }
-  .btn.ghost { background: transparent; color: var(--brand); border: 2px solid var(--brand); margin-left: 10px; }
-  section { padding: 72px 0; }
-  section:nth-of-type(odd) { background: var(--soft); }
-  h2 { font-size: 2rem; margin: 0 0 10px; }
-  .sub { color: var(--muted); margin: 0 0 32px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-  .card { background: #fff; border: 1px solid #e4e7ef; border-radius: 16px; padding: 26px; }
-  .card h3 { margin: 0 0 6px; }
-  .card .price { font-size: 2rem; font-weight: 800; margin: 8px 0; }
-  .card .price small { font-size: .95rem; color: var(--muted); font-weight: 500; }
-  .card ul { padding-left: 18px; color: var(--muted); margin: 12px 0 0; }
-  .card.featured { border: 2px solid var(--brand); }
-  .tag { display: inline-block; background: var(--brand); color: #fff; font-size: .75rem; padding: 3px 10px; border-radius: 99px; font-weight: 700; }
-  .steps { counter-reset: s; }
-  .steps .card::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--brand2); color: #fff; font-weight: 800; margin-bottom: 12px; }
-  footer { background: var(--ink); color: #aab3c2; padding: 28px 0; font-size: .9rem; }
-  @media (max-width: 520px) { .btn.ghost { margin: 12px 0 0; } }
-</style>
+<title>Keystone Sites | Websites for South Florida Businesses</title>
+<meta name="description" content="Keystone Sites builds fast, mobile-friendly websites for local businesses. Send us your info and photos and see your new site in days.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600;700&family=Anton&display=swap">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<header><div class="wrap">
-  <div class="logo">Keystone <span>Sites</span></div>
-  <nav><a href="#packages">Packages</a><a href="#process">Process</a><a href="#contact">Contact</a></nav>
+<header class="top"><div class="wrap">
+  <a class="logo" href="/"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 4 9v4h24V9L16 3Z" fill="#13294b"/><path d="M7 15h4v10H7zM14 15h4v10h-4zM21 15h4v10h-4z" fill="#13294b"/><path d="M4 27h24v2H4z" fill="#f5a524"/><path d="M13.5 9h5l-1 3h-3z" fill="#f5a524"/></svg>Keystone Sites</a>
+  <nav><a href="#how">How it works</a><a href="#pricing">Pricing</a><a class="btn btn-amber" href="/start/">Get your website</a></nav>
 </div></header>
 
-<div class="hero"><div class="wrap">
-  <h1>A professional website for your business, live in days.</h1>
-  <p>We design, build and look after mobile-friendly websites for local businesses, so customers can find you, trust you and call you.</p>
-  <a class="btn" href="#contact">Get a free demo site</a><a class="btn ghost" href="#packages">See pricing</a>
-</div></div>
+<section class="hero"><div class="wrap">
+  <div>
+    <p class="eyebrow">Websites for local businesses</p>
+    <h1>Your business, online and looking its best.</h1>
+    <p class="sub">Tell us about your business, send a few photos, and we'll build you a fast, mobile-friendly website. You see it before you pay a cent.</p>
+    <div class="ctas"><a class="btn btn-amber" href="/start/">Get your free preview</a><a class="btn btn-ghost" href="#pricing">See pricing</a></div>
+    <ul class="proof"><li>Built for phones</li><li>Click-to-call &amp; directions</li><li>Live in days</li></ul>
+  </div>
+  <div class="phone" aria-hidden="true">
+    <div class="bar">Now open late · until 2 AM</div>
+    <div class="scr"><span>Sunrise, FL</span><b>Get lost in da souse.</b><span>Smoke boxes, souse &amp; late-night comfort food.</span><i>Order now</i></div>
+    <div class="tick">Smoke box ✦ Dog box ✦ Souse ✦ Wings</div>
+  </div>
+</div></section>
 
-<section id="packages"><div class="wrap">
-  <h2>Simple packages</h2>
-  <p class="sub">One-time build fee plus optional monthly care. No hidden costs.</p>
+<section class="band" id="how"><div class="wrap">
+  <div class="head"><p class="eyebrow">How it works</p><h2>Three steps. No tech skills needed.</h2></div>
   <div class="grid">
-    <div class="card">
-      <h3>Starter</h3>
-      <div class="price">$499 <small>one-time</small></div>
-      <ul><li>One-page website</li><li>Mobile-friendly design</li><li>Click-to-call &amp; map</li><li>Launch in 3–5 days</li></ul>
-    </div>
-    <div class="card featured">
-      <span class="tag">Most popular</span>
-      <h3>Business</h3>
-      <div class="price">$1,200 <small>one-time</small></div>
-      <ul><li>Up to 5 pages</li><li>Contact form</li><li>Google Business setup</li><li>Basic SEO</li><li>Launch in 1–2 weeks</li></ul>
-    </div>
-    <div class="card">
-      <h3>Care Plan</h3>
-      <div class="price">$49 <small>/ month</small></div>
-      <ul><li>Hosting &amp; SSL</li><li>Content updates each month</li><li>Backups &amp; uptime checks</li><li>Priority support</li></ul>
-    </div>
+    <div class="card"><div class="step-n">1</div><h3>Tell us about you</h3><p>Fill in a short form with your services, hours and contact info. Add photos, your logo and a video if you have them.</p></div>
+    <div class="card"><div class="step-n">2</div><h3>See your preview</h3><p>We build your site and text you a private link. Look at it on your phone and tell us what to change.</p></div>
+    <div class="card"><div class="step-n">3</div><h3>Go live</h3><p>When you love it, we put it on your own web address and keep it updated for you.</p></div>
   </div>
 </div></section>
 
-<section id="process"><div class="wrap">
-  <h2>How it works</h2>
-  <p class="sub">You stay focused on your business. We handle the website.</p>
-  <div class="grid steps">
-    <div class="card"><h3>Free demo</h3><p>We build a preview of your new site before you pay anything.</p></div>
-    <div class="card"><h3>Your feedback</h3><p>Tell us what to change: photos, wording, colors.</p></div>
-    <div class="card"><h3>Launch</h3><p>We connect your domain and put the site live.</p></div>
-    <div class="card"><h3>Ongoing care</h3><p>We keep it updated, secure and fast.</p></div>
+<section class="band soft" id="pricing"><div class="wrap">
+  <div class="head"><p class="eyebrow">Pricing</p><h2>Simple, one-time pricing.</h2><p>No contracts. The monthly care plan is optional.</p></div>
+  <div class="grid">
+    <div class="card"><h3>Starter</h3><div class="price">$499 <small>one-time</small></div><ul><li>One-page website</li><li>Mobile-friendly design</li><li>Click-to-call &amp; map</li><li>Live in 3–5 days</li></ul></div>
+    <div class="card featured"><span class="tag">Most popular</span><h3>Business</h3><div class="price">$1,200 <small>one-time</small></div><ul><li>Up to 5 pages</li><li>Contact form</li><li>Google Business Profile setup</li><li>Basic SEO</li></ul></div>
+    <div class="card"><h3>Care Plan</h3><div class="price">$49 <small>/ month</small></div><ul><li>Hosting &amp; security</li><li>Monthly updates</li><li>Backups</li><li>Priority support</li></ul></div>
   </div>
 </div></section>
 
-<section id="contact"><div class="wrap">
-  <h2>Let's build your website</h2>
-  <p class="sub">Tell us about your business and we'll send you a free demo.</p>
-  <!-- Replace with your real phone and email before publishing. -->
-  <a class="btn" href="mailto:you@example.com?subject=Website%20demo%20request">Email us</a>
-  <a class="btn ghost" href="tel:+10000000000">Call us</a>
+<section class="cta-band"><div class="wrap">
+  <h2>See your new website before you pay.</h2>
+  <a class="btn btn-amber" href="/start/">Get your free preview</a>
 </div></section>
 
-<footer><div class="wrap">© 2026 Keystone Sites</div></footer>
+<footer class="foot"><div class="wrap"><span>© 2026 Keystone Sites · South Florida</span><a href="/start/" style="color:#fff">Get your website</a></div></footer>
 </body>
 </html>

@@ -9,7 +9,7 @@ ELIO-Website-Studio/
 ├── template/index.html   # the website design (3 looks: bold, elegant, modern)
 ├── clients/              # one folder per client, each with site.config.json (+ assets/)
 ├── dist/                 # built websites, ready to upload
-├── studio-site/          # your studio's own sales page
+├── studio-site/          # your public Keystone Sites website + "Get your website" form
 ├── dashboard/            # your business dashboard (leads, clients, income)
 └── business/             # pricing, sales script, proposal and intake templates
 ```
@@ -112,6 +112,20 @@ but that copy keeps its data separately inside the browser.
 - Your data stays in that browser. Use **Save backup** now and then, and **Load backup** to move it to another computer.
 
 Example client configs for a plumber, a restaurant and a salon are in `clients/_example-*`.
+
+## Your public website and website requests
+In the dashboard, open **Settings → 4. Your Keystone Sites website** and click **Publish my website**.
+It puts `studio-site/` online: your home page, pricing, and a **Get your website** form at `/start/`.
+Business owners fill in their details and add up to 8 photos, a logo and a short video (photos are shrunk
+on their phone so they fit). Netlify collects the answers.
+
+The dashboard checks for new requests every 5 minutes (or click **Check for new requests**). Each one appears
+under **Website requests** with its photos. Click **Build website** and the agent builds the site with the
+owner's own photos and logo, then adds the business as **Demo ready** with **Send preview**.
+
+If Netlify says form detection is off, the dashboard links you to the switch: turn it on, then publish again.
+Netlify's free plan includes 100 form submissions and 10 MB of uploads a month.
+Uploaded files are saved on this computer in `data/requests/`.
 
 ## Running the business
 See `business/`:

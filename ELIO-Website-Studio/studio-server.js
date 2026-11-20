@@ -31,9 +31,9 @@ const CLAUDE_BIN =
 function load() {
   try {
     const d = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    return { items: d.items || [], jobs: d.jobs || [], imported: !!d.imported, pausedUntil: d.pausedUntil || 0 };
+    return { items: d.items || [], jobs: d.jobs || [], imported: !!d.imported, pausedUntil: d.pausedUntil || 0, requests: d.requests || [] };
   } catch {
-    return { items: [], jobs: [], imported: false, pausedUntil: 0 };
+    return { items: [], jobs: [], imported: false, pausedUntil: 0, requests: [] };
   }
 }
 let state = load();
@@ -87,7 +87,7 @@ function serveFile(res, file) {
 }
 
 // ---------- the agent ----------
-function agentPrompt(request, outFile) {
+function agentPrompt(request, outFile, ownerFiles = []) {
   const example = fs.readFileSync(path.join(ROOT, "clients", "lost-in-da-souse-kitchen", "site.config.json"), "utf8");
   return `You are the lead designer and copywriter at Keystone Sites, a web design studio. You build demo websites that local
 business owners see and immediately want to buy. They must look like a top restaurant chain or premium local
@@ -97,6 +97,14 @@ THE USER'S REQUEST:
 """
 ${request}
 """
+${ownerFiles.length ? `
+THE OWNER SENT THESE FILES. They are approved for use and will be in the site's assets folder:
+${ownerFiles.map((f) => `- ${f.path}  (${f.kind}${f.label ? ", " + f.label : ""})`).join("\n")}
+Use them first: the best wide photo as hero.image, photos on service cards and in "gallery" (3 or 5), one for aboutImage.
+If there is a logo file, set business.logo to its path. If there is a video file, set hero.video to it.
+Only add stock photos to fill gaps, and then set "sampleMedia": true. The business details above come from the owner:
+treat them as correct, and use the web only to fill gaps.
+` : ""}
 
 STEP 1: RESEARCH (use WebSearch and WebFetch)
 Find the exact business and location. Collect: name, address, phone, hours for each day, what they sell,
@@ -203,7 +211,7 @@ function runJob(job) {
     const outFile = path.join(INCOMING, job.id + ".json");
     try { fs.unlinkSync(outFile); } catch {}
 
-    const args = ["-p", agentPrompt(job.request, outFile),
+    const args = ["-p", agentPrompt(job.request, outFile, job.ownerFiles || []),
       "--allowedTools", "WebSearch,WebFetch,Read,Write",
       "--permission-mode", "acceptEdits",
       "--output-format", "json"];
@@ -248,6 +256,9 @@ function runJob(job) {
       fs.mkdirSync(path.join(dir, "assets"), { recursive: true });
       fs.writeFileSync(path.join(dir, "site.config.json"), JSON.stringify(cfg, null, 2));
       fs.unlinkSync(outFile);
+      for (const f of job.ownerFiles || []) {
+        try { fs.copyFileSync(f.src, path.join(dir, f.path)); } catch { /* a missing upload shouldn't stop the build */ }
+      }
       try {
         execFileSync(process.execPath, [path.join(ROOT, "build.js"), path.join("clients", slug)], { cwd: ROOT });
       } catch (e) {
@@ -272,9 +283,21 @@ function runJob(job) {
         slug,
         createdBy: "agent",
         createdAt: today(),
+        ...(job.fromRequest ? {
+          contact: job.fromRequest.contact || "",
+          reach: [job.fromRequest.phone, job.fromRequest.email].filter(Boolean).join(" · ") || [b.phone, b.email].filter(Boolean).join(" · "),
+          source: "Online form",
+          textOk: !!job.fromRequest.textOk,
+          next: "Send the preview to the owner",
+          due: today(),
+        } : {}),
       };
       state.items.push(item);
       Object.assign(job, { status: "done", step: "Demo ready", finishedAt: new Date().toISOString(), itemId: item.id, demo: item.demo, name, notes });
+      if (job.fromRequest) {
+        const rq = state.requests.find((r) => r.id === job.fromRequest.id);
+        if (rq) { rq.status = "built"; rq.itemId = item.id; }
+      }
       resolve();
     });
 
@@ -429,6 +452,123 @@ async function unpublishItem(item) {
   return item;
 }
 
+
+// Upload a whole folder to a Netlify site and wait until it's live.
+async function deployDir(siteId, dir) {
+  const files = listFiles(dir);
+  const digests = {}, byHash = {};
+  for (const f of files) {
+    const h = crypto.createHash("sha1").update(fs.readFileSync(f.full)).digest("hex");
+    digests[f.rel] = h; byHash[h] = f;
+  }
+  const deploy = await netlify("POST", `/sites/${siteId}/deploys`, { files: digests });
+  for (const h of deploy.required || []) {
+    const f = byHash[h];
+    if (f) await netlify("PUT", `/deploys/${deploy.id}/files${f.rel.split("/").map(encodeURIComponent).join("/")}`, fs.readFileSync(f.full), { "Content-Type": "application/octet-stream" });
+  }
+  let d = deploy;
+  for (let i = 0; i < 40 && d.state !== "ready"; i++) {
+    if (d.state === "error") throw new Error("Netlify couldn't finish publishing. Try again.");
+    await new Promise((r) => setTimeout(r, 1000));
+    d = await netlify("GET", `/deploys/${deploy.id}`);
+  }
+  return d;
+}
+
+// ---------- your public Keystone Sites website + website requests ----------
+// The site in studio-site/ has a "Get your website" form. Netlify collects the answers and files;
+// the dashboard pulls them in so you can build each site with one click.
+const REQ_DIR = path.join(DATA_DIR, "requests");
+
+async function publishStudioSite() {
+  const st = loadSettings();
+  let siteId = st.studioSiteId;
+  if (siteId) { try { await netlify("GET", `/sites/${siteId}`); } catch { siteId = null; } }
+  if (!siteId) {
+    const site = await netlify("POST", "/sites", { name: `keystone-sites-${crypto.randomBytes(3).toString("hex")}` });
+    siteId = site.id;
+  }
+  // Ask Netlify to read the form in the page (new sites can have form detection switched off).
+  try { await netlify("PATCH", `/sites/${siteId}`, { processing_settings: { ignore_html_forms: false } }); } catch { /* not every plan allows this */ }
+  await deployDir(siteId, path.join(ROOT, "studio-site"));
+  const site = await netlify("GET", `/sites/${siteId}`);
+  let forms = [];
+  try { forms = await netlify("GET", `/sites/${siteId}/forms`); } catch { /* checked below */ }
+  const formsOn = Array.isArray(forms) && forms.some((f) => f.name === "website-request");
+  const s2 = loadSettings();
+  Object.assign(s2, { studioSiteId: siteId, studioUrl: String(site.ssl_url || site.url || "").replace(/\/+$/, ""), studioSiteName: site.name, studioFormsOn: formsOn });
+  saveSettings(s2);
+  const probe = { publicUrl: s2.studioUrl }; await checkPublic(probe, site);
+  return { url: s2.studioUrl, formsOn, formsFix: `https://app.netlify.com/projects/${site.name}/configuration/forms`,
+    privateNote: probe.privateNote, privateFix: probe.privateFix, privateTeamFix: probe.privateTeamFix };
+}
+
+const isFile = (v) => v && typeof v === "object" && typeof v.url === "string";
+const safeName = (n) => String(n || "file").replace(/[^\w.-]+/g, "_").slice(-80);
+
+async function syncRequests() {
+  const st = loadSettings();
+  if (!st.studioSiteId || !st.netlifyToken) return { added: 0 };
+  const subs = await netlify("GET", `/sites/${st.studioSiteId}/submissions?per_page=100`);
+  let added = 0;
+  for (const sub of subs || []) {
+    if (sub.form_name && sub.form_name !== "website-request") continue;
+    if (state.requests.some((r) => r.id === sub.id)) continue;
+    const data = sub.data || {};
+    const fields = {}, files = [];
+    for (const [k, v] of Object.entries(data)) {
+      const list = Array.isArray(v) && v.some(isFile) ? v : isFile(v) ? [v] : null;
+      if (list) list.filter(isFile).forEach((f) => files.push({ field: k, ...f }));
+      else if (typeof v === "string" && !["ip", "user_agent", "referrer", "form-name", "bot-field"].includes(k)) fields[k] = v;
+    }
+    // Netlify's file links expire, so save the files on this computer right away.
+    const dir = path.join(REQ_DIR, sub.id);
+    fs.mkdirSync(dir, { recursive: true });
+    const saved = [];
+    for (const f of files) {
+      try {
+        const r = await fetch(f.url);
+        if (!r.ok) continue;
+        const name = `${f.field}-${safeName(f.filename)}`;
+        fs.writeFileSync(path.join(dir, name), Buffer.from(await r.arrayBuffer()));
+        saved.push({ field: f.field, name, type: f.type || "", size: f.size || 0 });
+      } catch { /* skip a file that won't download */ }
+    }
+    state.requests.unshift({ id: sub.id, receivedAt: sub.created_at || new Date().toISOString(), status: "new", fields, files: saved });
+    added++;
+  }
+  if (added) save();
+  st.lastRequestSync = new Date().toISOString(); saveSettings(st);
+  return { added };
+}
+
+function requestToJob(rq) {
+  const f = rq.fields || {};
+  const lines = [
+    `Business: ${f.business_name || ""}`,
+    f.business_type && `Type of business: ${f.business_type}`,
+    f.address && `Address / area served: ${f.address}`,
+    f.phone && `Business phone: ${f.phone}`,
+    f.email && `Email: ${f.email}`,
+    f.hours && `Hours: ${f.hours}`,
+    f.services && `Services / menu (from the owner):\n${f.services}`,
+    f.about && `About the business (from the owner):\n${f.about}`,
+    f.style && `Look and colors the owner wants: ${f.style}`,
+    f.links && `Their links (website, social, ordering, videos): ${f.links}`,
+    f.notes && `Other notes: ${f.notes}`,
+    "This owner asked us for a website through our online form, so this is a real request, not a cold demo.",
+  ].filter(Boolean);
+  let n = 0;
+  const ownerFiles = (rq.files || []).map((x) => {
+    const ext = (path.extname(x.name) || ".jpg").toLowerCase();
+    const kind = x.field === "logo" ? "logo" : x.field === "video" || /video/.test(x.type) || ext === ".mp4" ? "video" : "photo";
+    const rel = kind === "logo" ? `assets/logo${ext}` : kind === "video" ? `assets/video${ext}` : `assets/photo-${++n}${ext}`;
+    return { src: path.join(REQ_DIR, rq.id, x.name), path: rel, kind };
+  });
+  return { request: lines.join("\n"), ownerFiles,
+    fromRequest: { id: rq.id, contact: f.owner_name || "", phone: f.phone || "", email: f.email || "", textOk: /yes|on|true/i.test(f.text_ok || "") } };
+}
+
 // ---------- routes ----------
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -438,6 +578,7 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/state" && req.method === "GET") {
       const st = loadSettings();
       return send(res, 200, { ...state, agent: true, running, netlify: !!st.netlifyToken, demoDomain: st.demoDomain || "",
+        studioUrl: st.studioUrl || "", studioFormsOn: !!st.studioFormsOn, studioSiteName: st.studioSiteName || "", lastRequestSync: st.lastRequestSync || "",
         texting: !!(st.twilio && st.twilio.sid && st.twilio.token && st.twilio.from), textFrom: (st.twilio && st.twilio.from) || "" });
     }
     if (p === "/api/settings/domain" && req.method === "POST") {
@@ -536,6 +677,33 @@ const server = http.createServer(async (req, res) => {
       save();
       return send(res, 200, { ok: true });
     }
+    if (p === "/api/studio-site/publish" && req.method === "POST") {
+      try { return send(res, 200, await publishStudioSite()); } catch (e) { return send(res, 400, { error: e.message }); }
+    }
+    if (p === "/api/requests/sync" && req.method === "POST") {
+      try { const r = await syncRequests(); return send(res, 200, { ...r, requests: state.requests }); } catch (e) { return send(res, 400, { error: e.message }); }
+    }
+    const rqm = /^\/api\/requests\/([\w-]+)\/(build|dismiss|restore)$/.exec(p);
+    if (rqm && req.method === "POST") {
+      const rq = state.requests.find((r) => r.id === rqm[1]);
+      if (!rq) return send(res, 404, { error: "That request isn't here any more." });
+      if (rqm[2] === "dismiss") { rq.status = "dismissed"; save(); return send(res, 200, { request: rq }); }
+      if (rqm[2] === "restore") { rq.status = "new"; save(); return send(res, 200, { request: rq }); }
+      const { request, ownerFiles, fromRequest } = requestToJob(rq);
+      const paused = state.pausedUntil > Date.now();
+      const job = { id: "job-" + Date.now(), request, ownerFiles, fromRequest, createdAt: new Date().toISOString(),
+        ...(paused ? { status: "waiting", step: "Waiting for your usage to reset", retryAt: new Date(state.pausedUntil).toISOString() } : { status: "queued", step: "Waiting to start" }) };
+      state.jobs.unshift(job); state.jobs = state.jobs.slice(0, 50);
+      rq.status = "building"; rq.jobId = job.id;
+      save(); pump();
+      return send(res, 200, { request: rq, job });
+    }
+    const rqf = /^\/api\/requests\/([\w-]+)\/files\/([\w.-]+)$/.exec(p);
+    if (rqf && req.method === "GET") {
+      const file = path.join(REQ_DIR, rqf[1], rqf[2]);
+      if (!file.startsWith(REQ_DIR + path.sep)) return send(res, 403, "Forbidden", "text/plain");
+      return serveFile(res, file);
+    }
     if (p.startsWith("/dist/")) {
       const file = path.normalize(path.join(ROOT, p));
       if (!file.startsWith(path.join(ROOT, "dist") + path.sep)) return send(res, 403, "Forbidden", "text/plain");
@@ -552,4 +720,8 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`Agent uses: ${CLAUDE_BIN}`);
   pump();
   setInterval(pump, TICK_MS);   // checks every minute whether usage is back
+  // Check your website's form for new requests every 5 minutes.
+  const syncEvery = +process.env.STUDIO_SYNC_MS || 5 * 60 * 1000;
+  setInterval(() => { syncRequests().catch(() => {}); }, syncEvery);
+  syncRequests().catch(() => {});
 });

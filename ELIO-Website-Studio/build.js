@@ -230,6 +230,7 @@ function render(cfg) {
     HEAD_CASE: style.headCase, HEAD_TRACK: style.headTrack, HEAD_WEIGHT: style.headWeight,
     ANNOUNCE: cfg.announcement ? `<div class="announce">${esc(cfg.announcement)}</div>` : "",
     NAME: esc(b.name || "Business Name"),
+    BRAND: b.logo ? `<img src="${esc(b.logo)}" alt="${esc(b.name || "")}">` : esc(b.name || "Business Name"),
     NAV: nav,
     HEADER_CTA: btn("btn-accent", primary.href, primary.label.replace(/^Call \(.*/, "Call now"), ""),
     HERO: heroHtml, TICKER: tickerHtml, INFO: infoHtml,

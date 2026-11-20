@@ -99,6 +99,21 @@
   .err-msg { color: var(--bad); font-weight: 600; margin: 0; }
   .ok-msg { color: var(--good); font-weight: 600; margin: 0; }
   ol.steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .reqs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .req-card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; background: var(--bg); }
+  .req-card.new { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; }
+  .req-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+  .req-top h3 { margin: 0; font: 700 1.05rem var(--display); }
+  .req-top small { color: var(--muted); display: block; }
+  .req-thumbs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .req-thumbs a { width: 54px; height: 54px; border-radius: 8px; background: var(--panel) center / cover no-repeat; border: 1px solid var(--line); display: grid; place-items: center; font-size: .7rem; color: var(--muted); text-decoration: none; }
+  details.req-more summary { cursor: pointer; color: var(--brand); font-weight: 600; font-size: .9rem; }
+  details.req-more dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 0 0; font-size: .9rem; }
+  details.req-more dt { color: var(--muted); }
+  details.req-more dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .req-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .req-head h2 { margin: 0; }
+  .count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 99px; background: var(--brand); color: var(--brand-ink); font-size: .8rem; font-weight: 700; margin-left: 8px; vertical-align: 2px; }
   body.tv { font-size: 20px; }
   body.tv .tools button:not(#tvBtn), body.tv .agent { display: none; }
   body.tv .kpi .value { font-size: 3rem; }
@@ -134,6 +149,16 @@
       <strong>You're on the offline copy of the dashboard.</strong> The demo agent and the Send button only work in the studio app.
       <a href="http://localhost:4321/">Open the studio app</a>. If that link doesn't load, double-click <strong>Keystone Sites</strong> on your desktop first.
     </div>
+  </section>
+
+  <section class="panel" id="reqPanel" hidden aria-labelledby="reqTitle">
+    <div class="req-head">
+      <h2 id="reqTitle">Website requests<span class="count" id="reqCount" hidden></span></h2>
+      <span class="tools"><span class="note" id="reqSynced"></span><button type="button" id="reqSync">Check for new requests</button></span>
+    </div>
+    <p class="note" id="reqSetup" hidden>When business owners fill in the form on your Keystone Sites website, their requests show up here. <a href="#" id="reqSetupLink">Publish your website</a> to start.</p>
+    <ul class="reqs" id="reqs"></ul>
+    <p class="err-msg" id="reqErr" hidden></p>
   </section>
 
   <div class="banner" id="sampleBanner" hidden>These are <strong>example</strong> entries so you can see how it works. <button id="clearSamples">Clear examples</button></div>
@@ -277,6 +302,17 @@
     <p class="err-msg" id="twErr" hidden></p>
   </div>
 
+  <div class="send-step">
+    <strong>4. Your Keystone Sites website (where owners request a site)</strong>
+    <p class="note">Publishes your home page and a "Get your website" form. Owners fill it in with their info, photos, logo and video, and their request appears in your dashboard with a <strong>Build website</strong> button.</p>
+    <div class="linkbox" id="studioLinkBox" hidden><input id="studioLink" readonly aria-label="Your website link"><a id="studioOpen" href="#" target="_blank" rel="noopener">Open</a></div>
+    <div class="send-btns"><button type="button" class="primary" id="studioPublish">Publish my website</button></div>
+    <div class="offline" id="formsOff" hidden><strong>One more step:</strong> Netlify needs form collection switched on for your website.
+      <a id="formsFix" href="#" target="_blank" rel="noopener">Open Forms settings</a>, click <strong>Enable form detection</strong>, then click <strong>Publish my website</strong> again.</div>
+    <div class="offline" id="studioPrivate" hidden><strong>Your website is private.</strong> <a id="studioPrivateFix" href="#" target="_blank" rel="noopener">Make it public</a>, then publish again.</div>
+    <p class="err-msg" id="studioErr" hidden></p><p class="ok-msg" id="studioOk" hidden></p>
+  </div>
+
   <div class="actions" style="margin-top:18px"><span></span><button type="button" id="netCancel">Done</button></div>
 </dialog>
 
@@ -300,6 +336,7 @@ const SAMPLES = [
 
 // Two modes: "server" when opened through the studio app (http://localhost:4321), "local" when opened as a file.
 let mode = "local", items = [], jobs = [], netlifyOn = false, textingOn = false, textFrom = "", demoDomain = "";
+let requests = [], studioUrl = "", studioFormsOn = false, lastRequestSync = "";
 const localRead = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(v) ? v : null; } catch (e) { return null; } };
 const localWrite = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} };
 
@@ -310,6 +347,7 @@ async function boot() {
       if (r.ok) {
         const s = await r.json();
         mode = "server"; items = s.items; jobs = s.jobs; netlifyOn = !!s.netlify; textingOn = !!s.texting; textFrom = s.textFrom || ""; demoDomain = s.demoDomain || "";
+        requests = s.requests || []; studioUrl = s.studioUrl || ""; studioFormsOn = !!s.studioFormsOn; lastRequestSync = s.lastRequestSync || "";
         // First time on the studio app: bring over entries made earlier in this browser.
         const old = localRead();
         if (!s.imported && !items.length) {
@@ -323,6 +361,7 @@ async function boot() {
   $("agentOn").hidden = mode !== "server";
   $("agentOff").hidden = mode === "server";
   $("netlifyBtn").hidden = mode !== "server";
+  $("reqPanel").hidden = mode !== "server";
   render();
   if (mode === "server") poll();
 }
@@ -339,7 +378,7 @@ async function poll() {
   try {
     const s = await (await fetch("/api/state", { cache: "no-store" })).json();
     const before = JSON.stringify(jobs.map(j => j.status));
-    jobs = s.jobs;
+    jobs = s.jobs; requests = s.requests || requests; lastRequestSync = s.lastRequestSync || lastRequestSync; studioUrl = s.studioUrl || studioUrl;
     // When a job finishes, the server has added the business; take its list.
     if (before !== JSON.stringify(jobs.map(j => j.status))) items = s.items;
     render();
@@ -361,7 +400,9 @@ function render() {
   const earned = items.filter(i => i.stage === "Live" || i.stage === "Building").reduce((a, i) => a + (+i.fee || 0), 0);
   const demos = items.filter(i => i.demo).length;
   const sent = items.filter(i => ["Demo sent", "Proposal", "Building", "Live"].includes(i.stage) && i.demo).length;
+  const newReqs = requests.filter(r => r.status === "new").length;
   $("kpis").innerHTML = [
+    ...(mode === "server" ? [["New requests", newReqs, newReqs ? "From your website form" : "None waiting"]] : []),
     ["Monthly recurring", money(mrr), `${live.length} site${live.length === 1 ? "" : "s"} live`],
     ["Build fees won", money(earned), "Building + live"],
     ["Demos made", demos, `${items.filter(i => i.stage === "Demo ready").length} waiting to be sent`],
@@ -388,6 +429,7 @@ function render() {
 
   $("sampleBanner").hidden = !items.some(i => i.sample);
 
+  if (mode === "server") renderRequests();
   if (mode === "server") {
     $("jobs").innerHTML = jobs.slice(0, 8).map(j => {
       const at = j.retryAt ? new Date(j.retryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
@@ -616,6 +658,8 @@ function openNetlify() {
   $("domainExample").textContent = `ameri-coast-insulation.${demoDomain || "yourdomain.com"}`;
   $("twOk").hidden = !textingOn; if (textingOn) $("twOk").textContent = `Texting is connected. Texts send from ${textFrom}.`;
   $("twClear").hidden = !textingOn;
+  for (const id of ["studioErr", "studioOk"]) $(id).hidden = true;
+  syncStudioSettings({ formsOn: studioFormsOn });
   netDlg.showModal();
 }
 $("netlifyBtn").onclick = openNetlify;
@@ -646,6 +690,81 @@ $("twSave").onclick = async () => {
   $("twSave").disabled = false;
 };
 $("twClear").onclick = async () => { await post("/api/settings/twilio", { clear: true }); textingOn = false; textFrom = ""; openNetlify(); };
+
+// ---------- website requests (from your public form) ----------
+const LABELS = { business_name: "Business", business_type: "Type", phone: "Phone", email: "Email", owner_name: "Owner", address: "Address",
+  hours: "Hours", services: "Services", about: "About", style: "Style", links: "Links", notes: "Notes", text_ok: "OK to text", photo_rights: "Photo rights" };
+function renderRequests() {
+  const visible = requests.filter(r => r.status !== "dismissed");
+  const n = requests.filter(r => r.status === "new").length;
+  $("reqCount").hidden = !n; $("reqCount").textContent = n;
+  $("reqSetup").hidden = !!studioUrl;
+  $("reqSynced").textContent = lastRequestSync ? "Checked " + new Date(lastRequestSync).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  $("reqSync").hidden = !studioUrl;
+  if (!visible.length) { $("reqs").innerHTML = studioUrl ? '<li class="empty">No requests yet. Share your website link with businesses: ' + `<a href="${esc(studioUrl)}/start/" target="_blank" rel="noopener">${esc(studioUrl)}/start/</a></li>` : ""; return; }
+  $("reqs").innerHTML = visible.slice(0, 20).map(r => {
+    const f = r.fields || {};
+    const when = new Date(r.receivedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    const files = (r.files || []).map(x => {
+      const url = `/api/requests/${encodeURIComponent(r.id)}/files/${encodeURIComponent(x.name)}`;
+      return /image/.test(x.type) || /\.(jpe?g|png|webp|gif)$/i.test(x.name)
+        ? `<a href="${url}" target="_blank" rel="noopener" style="background-image:url('${url}')" aria-label="${esc(x.field)}"></a>`
+        : `<a href="${url}" target="_blank" rel="noopener">${esc(x.field)}</a>`;
+    }).join("");
+    const status = r.status === "new" ? pill("New", "ready") : r.status === "building" ? `<span class="pill"><span class="spin" aria-hidden="true"></span>Building</span>` : r.status === "built" ? pill("Built", "done") : pill(r.status);
+    const acts = r.status === "new"
+      ? `<button type="button" class="primary" data-req-build="${esc(r.id)}">Build website</button><button type="button" data-req-dismiss="${esc(r.id)}">Dismiss</button>`
+      : r.status === "built" && r.itemId ? `<button type="button" class="primary" data-send="${r.itemId}">Send preview</button>` : "";
+    const details = Object.entries(f).filter(([, v]) => v).map(([k, v]) => `<dt>${esc(LABELS[k] || k)}</dt><dd>${esc(v)}</dd>`).join("");
+    return `<li class="req-card ${r.status === "new" ? "new" : ""}">
+      <div class="req-top"><div><h3>${esc(f.business_name || "New request")}</h3><small>${esc([f.owner_name, f.phone, f.email].filter(Boolean).join(" · "))} · ${esc(when)}</small></div>
+        <span class="row-acts">${status}${acts}</span></div>
+      ${files ? `<div class="req-thumbs">${files}</div>` : ""}
+      <details class="req-more"><summary>Details</summary><dl>${details}</dl></details>
+    </li>`;
+  }).join("");
+}
+async function syncNow(quiet) {
+  $("reqErr").hidden = true;
+  if (!quiet) { $("reqSync").disabled = true; $("reqSync").textContent = "Checking…"; }
+  try { const j = await post("/api/requests/sync", {}); requests = j.requests; lastRequestSync = new Date().toISOString(); render(); }
+  catch (err) { if (!quiet) { $("reqErr").textContent = err.message; $("reqErr").hidden = false; } }
+  $("reqSync").disabled = false; $("reqSync").textContent = "Check for new requests";
+}
+$("reqSync").onclick = () => syncNow(false);
+$("reqSetupLink").onclick = e => { e.preventDefault(); openNetlify(); };
+$("reqs").addEventListener("click", async e => {
+  const b = e.target.closest("[data-req-build]"), d = e.target.closest("[data-req-dismiss]");
+  if (!b && !d) return;
+  const id = (b || d).dataset.reqBuild || (b || d).dataset.reqDismiss;
+  try {
+    const j = await post(`/api/requests/${encodeURIComponent(id)}/${b ? "build" : "dismiss"}`, {});
+    const i = requests.findIndex(r => r.id === id); if (i >= 0) requests[i] = j.request;
+    if (j.job) { jobs.unshift(j.job); poll(); }
+    render();
+  } catch (err) { $("reqErr").textContent = err.message; $("reqErr").hidden = false; }
+});
+
+// Settings: publish your Keystone Sites website
+function syncStudioSettings(info = {}) {
+  $("studioLinkBox").hidden = !studioUrl; $("studioLink").value = studioUrl ? studioUrl + "/start/" : ""; $("studioOpen").href = studioUrl || "#";
+  $("studioPublish").textContent = studioUrl ? "Update my website" : "Publish my website";
+  $("formsOff").hidden = !(studioUrl && info.formsOn === false); if (info.formsFix) $("formsFix").href = info.formsFix;
+  $("studioPrivate").hidden = !info.privateNote; if (info.privateFix) $("studioPrivateFix").href = info.privateFix;
+}
+$("studioPublish").onclick = async () => {
+  if (!netlifyOn) { $("studioErr").textContent = "Connect Netlify in section 1 first."; $("studioErr").hidden = false; return; }
+  const btn = $("studioPublish"); btn.disabled = true; btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Publishing…';
+  $("studioErr").hidden = true; $("studioOk").hidden = true;
+  try {
+    const j = await post("/api/studio-site/publish", {});
+    studioUrl = j.url; studioFormsOn = j.formsOn; syncStudioSettings(j);
+    $("studioOk").textContent = j.formsOn && !j.privateNote ? "Your website is live and the form is collecting requests. Share the form link with businesses." : "Published. Finish the step below so the form works.";
+    $("studioOk").hidden = false; render();
+  } catch (err) { $("studioErr").textContent = err.message; $("studioErr").hidden = false; }
+  btn.disabled = false; syncStudioSettings({ formsOn: studioFormsOn });
+  btn.textContent = studioUrl ? "Update my website" : "Publish my website";
+};
 
 // ---------- backup ----------
 $("exportBtn").onclick = () => {
