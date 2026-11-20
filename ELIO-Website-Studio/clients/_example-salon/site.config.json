@@ -1,0 +1,30 @@
+{
+  "business": {
+    "name": "Palm Beauty Studio",
+    "tagline": "Hair, nails and brows in Orlando",
+    "phone": "(407) 555-0123",
+    "email": "book@example.com",
+    "address": "789 Example St, Orlando, FL",
+    "hours": [
+      { "days": "Tue – Fri", "time": "9:00 AM – 7:00 PM" },
+      { "days": "Saturday", "time": "9:00 AM – 5:00 PM" },
+      { "days": "Sun – Mon", "time": "Closed" }
+    ]
+  },
+  "theme": { "primary": "#2f5d50", "accent": "#f2c6c2" },
+  "hero": {
+    "headline": "Look good. Feel even better.",
+    "subheadline": "A calm, friendly salon for cuts, color, nails and brows. Walk-ins welcome when chairs are open.",
+    "ctaText": "Book an appointment"
+  },
+  "servicesTitle": "Services & prices",
+  "services": [
+    { "title": "Haircut & style", "description": "Wash, cut and blow-dry.", "price": "from $45" },
+    { "title": "Color", "description": "Single process, highlights and balayage.", "price": "from $85" },
+    { "title": "Gel manicure", "description": "Long-lasting shine, any color.", "price": "$35" },
+    { "title": "Brow shaping", "description": "Wax and tint.", "price": "$20" }
+  ],
+  "about": "Replace with the salon's story: the stylists, their experience and what makes a visit special.",
+  "testimonials": [],
+  "seo": { "title": "Palm Beauty Studio | Orlando Hair & Nail Salon", "description": "Haircuts, color, nails and brows in Orlando." }
+}

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ELIO Studio Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+  /* Layout: KPI strip on top, sales pipeline board, then clients table + follow-ups side by side. */
+  :root {
+    --bg: #f3f4f9; --panel: #ffffff; --ink: #141a2a; --muted: #5f6880; --line: #e1e4ee;
+    --brand: #5b3df5; --brand-soft: #ece8ff; --good: #12925e; --warn: #c27c0e; --bad: #c53b3b;
+    --display: "Space Grotesk", system-ui, sans-serif; --body: "Inter", system-ui, -apple-system, Segoe UI, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #0d111c; --panel: #161c2b; --ink: #e8ebf4; --muted: #98a1b8; --line: #263049; --brand: #8b74ff; --brand-soft: #241f45; --good: #3fcf8e; --warn: #f0b44c; --bad: #ff7a7a; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+  .app { max-width: 1400px; margin: 0 auto; display: grid; gap: 20px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font: 700 1.6rem var(--display); margin: 0; }
+  h1 span { color: var(--brand); }
+  h2 { font: 700 1.1rem var(--display); margin: 0 0 12px; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  button, .btn { font: 600 .9rem var(--body); border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .kpi .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+  .kpi .value { font: 700 2rem var(--display); font-variant-numeric: tabular-nums; }
+  .kpi .note { color: var(--muted); font-size: .85rem; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; min-width: 0; }
+  .board { display: grid; grid-template-columns: repeat(5, minmax(170px, 1fr)); gap: 12px; overflow-x: auto; }
+  .col { background: var(--bg); border-radius: 10px; padding: 10px; min-height: 120px; }
+  .col h3 { font: 600 .85rem var(--body); margin: 0 0 8px; display: flex; justify-content: space-between; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .deal { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 8px; cursor: pointer; }
+  .deal strong { display: block; }
+  .deal small { color: var(--muted); }
+  .two { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  td.num, th.num { text-align: right; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: .78rem; font-weight: 600; background: var(--brand-soft); color: var(--brand); }
+  .pill.live { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+  .pill.lost { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+  .follow { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .follow li { display: flex; justify-content: space-between; gap: 8px; padding: 10px; border-radius: 8px; background: var(--bg); }
+  .follow .due { font-weight: 600; white-space: nowrap; }
+  .follow .overdue { color: var(--bad); }
+  .follow .today { color: var(--warn); }
+  .empty { color: var(--muted); }
+  .banner { background: var(--brand-soft); color: var(--ink); border-radius: 10px; padding: 10px 14px; font-size: .9rem; }
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); width: min(520px, calc(100vw - 32px)); padding: 22px; }
+  dialog::backdrop { background: rgb(0 0 0 / .45); }
+  form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  form.grid label { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
+  form.grid .full { grid-column: 1 / -1; }
+  input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; }
+  .actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  /* TV mode: bigger everything, no editing chrome. */
+  body.tv { font-size: 20px; }
+  body.tv .tools button:not(#tvBtn) { display: none; }
+  body.tv .kpi .value { font-size: 3rem; }
+  @media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { form.grid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: no-preference) { .deal { transition: transform .12s; } .deal:hover { transform: translateY(-2px); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ELIO <span>Studio</span> Dashboard</h1>
+    <div class="tools">
+      <button class="primary" id="addBtn">+ Add lead or client</button>
+      <button id="exportBtn">Save backup</button>
+      <button id="importBtn">Load backup</button>
+      <button id="tvBtn">TV mode</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <div class="banner" id="sampleBanner" hidden>These are <strong>example</strong> entries so you can see how it works. <button id="clearSamples">Clear examples</button></div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="panel">
+    <h2>Sales pipeline</h2>
+    <div class="board" id="board"></div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <h2>All clients &amp; leads</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Business</th><th>Stage</th><th>Package</th><th class="num">Build fee</th><th class="num">Monthly</th><th>Next step</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </section>
+    <section class="panel">
+      <h2>Follow-ups</h2>
+      <ul class="follow" id="follow"></ul>
+    </section>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form class="grid" id="form" method="dialog">
+    <h2 class="full" id="dlgTitle">Add lead or client</h2>
+    <label class="full">Business name<input id="f-name" name="name" required></label>
+    <label>Contact person<input id="f-contact" name="contact"></label>
+    <label>Phone or email<input id="f-reach" name="reach"></label>
+    <label>Stage<select id="f-stage" name="stage"></select></label>
+    <label>Package<select id="f-package" name="package"><option>Starter</option><option>Business</option><option>Custom</option></select></label>
+    <label>Build fee ($)<input id="f-fee" name="fee" type="number" min="0" step="1"></label>
+    <label>Care plan ($/month)<input id="f-monthly" name="monthly" type="number" min="0" step="1"></label>
+    <label>Next step<input id="f-next" name="next" placeholder="e.g. Send demo link"></label>
+    <label>Follow-up date<input id="f-due" name="due" type="date"></label>
+    <label class="full">Notes<textarea id="f-notes" name="notes" rows="2"></textarea></label>
+    <div class="actions full">
+      <button type="button" id="delBtn">Delete</button>
+      <span style="display:flex;gap:8px"><button type="button" id="cancelBtn">Cancel</button><button class="primary" type="submit">Save</button></span>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const STAGES = ["Lead", "Demo sent", "Proposal", "Building", "Live"];
+const KEY = "elio-dashboard-v1";
+const money = n => "$" + Math.round(n || 0).toLocaleString();
+const today = () => new Date().toISOString().slice(0, 10);
+const addDays = d => { const x = new Date(); x.setDate(x.getDate() + d); return x.toISOString().slice(0, 10); };
+
+const SAMPLES = [
+  { id: 1, sample: true, name: "Example: Sunshine Plumbing", contact: "Owner", stage: "Live", package: "Business", fee: 1200, monthly: 49, next: "Monthly update", due: addDays(12) },
+  { id: 2, sample: true, name: "Example: Bayside Barber", contact: "Owner", stage: "Building", package: "Starter", fee: 499, monthly: 49, next: "Send first draft", due: today() },
+  { id: 3, sample: true, name: "Example: Coral Taco Truck", contact: "Owner", stage: "Proposal", package: "Starter", fee: 499, monthly: 0, next: "Call about proposal", due: addDays(-1) },
+  { id: 4, sample: true, name: "Example: Palm Lawn Care", stage: "Demo sent", package: "Business", fee: 1200, monthly: 49, next: "Follow up on demo", due: addDays(3) },
+  { id: 5, sample: true, name: "Example: Ocean Nails", stage: "Lead", package: "Starter", fee: 499, monthly: 49, next: "Build demo", due: addDays(1) },
+];
+
+let items;
+try { items = JSON.parse(localStorage.getItem(KEY)); } catch (e) { items = null; }
+if (!Array.isArray(items)) items = SAMPLES.slice();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} };
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pill = s => `<span class="pill ${s === "Live" ? "live" : ""}">${esc(s)}</span>`;
+
+function render() {
+  const live = items.filter(i => i.stage === "Live");
+  const mrr = live.reduce((a, i) => a + (+i.monthly || 0), 0);
+  const earned = items.filter(i => i.stage === "Live" || i.stage === "Building").reduce((a, i) => a + (+i.fee || 0), 0);
+  const pipeline = items.filter(i => ["Lead", "Demo sent", "Proposal"].includes(i.stage)).reduce((a, i) => a + (+i.fee || 0), 0);
+  document.getElementById("kpis").innerHTML = [
+    ["Monthly recurring", money(mrr), `${live.length} site${live.length === 1 ? "" : "s"} on care plan`],
+    ["Build fees won", money(earned), "Building + live"],
+    ["Open pipeline", money(pipeline), "Leads, demos, proposals"],
+    ["Sites live", live.length, `${items.length} businesses tracked`],
+  ].map(([l, v, n]) => `<div class="kpi"><div class="label">${l}</div><div class="value">${v}</div><div class="note">${n}</div></div>`).join("");
+
+  document.getElementById("board").innerHTML = STAGES.map(s => {
+    const list = items.filter(i => i.stage === s);
+    return `<div class="col"><h3>${s}<span>${list.length}</span></h3>${list.map(i =>
+      `<div class="deal" tabindex="0" data-id="${i.id}"><strong>${esc(i.name)}</strong><small>${esc(i.package)} · ${money(i.fee)}</small></div>`).join("") || '<div class="empty">None yet</div>'}</div>`;
+  }).join("");
+
+  document.getElementById("rows").innerHTML = items.length ? items.map(i =>
+    `<tr class="deal-row" data-id="${i.id}" style="cursor:pointer"><td>${esc(i.name)}</td><td>${pill(i.stage)}</td><td>${esc(i.package)}</td><td class="num">${money(i.fee)}</td><td class="num">${i.monthly ? money(i.monthly) : "—"}</td><td>${esc(i.next)}</td></tr>`).join("")
+    : '<tr><td colspan="6" class="empty">No clients yet. Click "+ Add lead or client" to add your first one.</td></tr>';
+
+  const t = today();
+  const due = items.filter(i => i.due).sort((a, b) => a.due.localeCompare(b.due));
+  document.getElementById("follow").innerHTML = due.length ? due.map(i => {
+    const cls = i.due < t ? "overdue" : i.due === t ? "today" : "";
+    const label = i.due < t ? "Overdue" : i.due === t ? "Today" : new Date(i.due + "T00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return `<li class="deal-row" data-id="${i.id}" style="cursor:pointer"><span>${esc(i.next || "Follow up")}<br><small class="empty">${esc(i.name)}</small></span><span class="due ${cls}">${label}</span></li>`;
+  }).join("") : '<li class="empty">Nothing scheduled.</li>';
+
+  document.getElementById("sampleBanner").hidden = !items.some(i => i.sample);
+}
+
+const dlg = document.getElementById("dlg"), form = document.getElementById("form");
+document.getElementById("f-stage").innerHTML = STAGES.map(s => `<option>${s}</option>`).join("");
+let editing = null;
+function open(id) {
+  editing = id ? items.find(i => i.id === id) : null;
+  form.reset();
+  document.getElementById("dlgTitle").textContent = editing ? "Edit " + editing.name : "Add lead or client";
+  document.getElementById("delBtn").hidden = !editing;
+  if (editing) for (const k of ["name", "contact", "reach", "stage", "package", "fee", "monthly", "next", "due", "notes"]) form.elements[k].value = editing[k] ?? "";
+  dlg.showModal();
+}
+form.addEventListener("submit", e => {
+  const d = Object.fromEntries(new FormData(form));
+  d.fee = +d.fee || 0; d.monthly = +d.monthly || 0;
+  if (editing) Object.assign(editing, d, { sample: editing.sample && d.name.startsWith("Example") });
+  else items.push({ id: Date.now(), ...d });
+  save(); render();
+});
+let confirmDel = false;
+document.getElementById("delBtn").onclick = e => {
+  if (!confirmDel) { confirmDel = true; e.target.textContent = "Click again to delete"; return; }
+  items = items.filter(i => i !== editing); confirmDel = false; e.target.textContent = "Delete";
+  save(); render(); dlg.close();
+};
+document.getElementById("cancelBtn").onclick = () => dlg.close();
+document.getElementById("addBtn").onclick = () => open();
+document.addEventListener("click", e => { const el = e.target.closest("[data-id]"); if (el && !document.body.classList.contains("tv")) open(+el.dataset.id); });
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches(".deal")) open(+e.target.dataset.id); });
+document.getElementById("clearSamples").onclick = () => { items = items.filter(i => !i.sample); save(); render(); };
+
+document.getElementById("exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `elio-backup-${today()}.json` });
+  a.click();
+};
+document.getElementById("importBtn").onclick = () => document.getElementById("importFile").click();
+document.getElementById("importFile").onchange = async e => {
+  try { const data = JSON.parse(await e.target.files[0].text()); if (Array.isArray(data)) { items = data; save(); render(); } } catch (err) {}
+};
+document.getElementById("tvBtn").onclick = async () => {
+  const on = document.body.classList.toggle("tv");
+  document.getElementById("tvBtn").textContent = on ? "Exit TV mode" : "TV mode";
+  try { if (on) await document.documentElement.requestFullscreen(); else if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) {}
+};
+// Keep the follow-up dates fresh on a TV left running all day.
+setInterval(render, 60 * 60 * 1000);
+render();
+</script>
+</body>
+</html>

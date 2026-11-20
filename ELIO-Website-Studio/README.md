@@ -10,6 +10,7 @@ ELIO-Website-Studio/
 ├── clients/              # one folder per client, each with site.config.json (+ assets/)
 ├── dist/                 # built websites, ready to upload
 ├── studio-site/          # ELIO's own sales page
+├── dashboard/            # your business dashboard (leads, clients, income)
 └── business/             # pricing, sales script, proposal and intake templates
 ```
 
@@ -48,6 +49,15 @@ Each finished site is one folder in `dist/`. Free or cheap options:
 - **Wix**: if a client wants to edit the site themselves.
 
 Connect the client's domain in the host's settings, and HTTPS is set up automatically.
+
+## Your dashboard
+Double-click `dashboard/index.html` to open it in your browser. Nothing to install.
+- Track every business from **Lead → Demo sent → Proposal → Building → Live**
+- See monthly recurring income, fees won, open pipeline and follow-ups due
+- **TV mode** shows it full screen with large text, for a laptop plugged into a TV
+- Your data stays in that browser. Use **Save backup** now and then, and **Load backup** to move it to another computer.
+
+Example client configs for a plumber, a restaurant and a salon are in `clients/_example-*`.
 
 ## Running the business
 See `business/`:
