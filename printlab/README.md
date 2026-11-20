@@ -19,6 +19,17 @@ models when Blender is installed on the laptop. Put photos/logos/STLs in `printl
 The agent writes `printlab/designs/<name>.py`, runs it, checks the preview and the
 printability report, and tells you which file to open and the slicer settings to use.
 
+## Update to the newest version
+
+From the Floridahub folder (no git needed):
+
+```bash
+.venv/bin/python printlab/update.py
+```
+
+It downloads the latest designs and app, keeps your `.venv`, `out/` and `inputs/` photos,
+rebuilds every design and restarts the dashboard.
+
 ## Put it on your desktop
 
 ```bash

@@ -427,7 +427,12 @@ def render_png(parts: dict, path: str) -> None:
 def export(parts, name: str, out_dir: str = "out", printer: str = DEFAULT_PRINTER,
            spacing: float = 10.0) -> list[Report]:
     """Write STL (one per part), a single 3MF plate with every part, a PNG preview
-    and a text report. `parts` is a Manifold or a dict {"name": Manifold}."""
+    and a text report. `parts` is a Manifold or a dict {"name": Manifold}.
+
+    A value may itself be a dict {"color": Manifold} (an assembly, e.g. one multi-color
+    badge): its members keep their positions relative to each other and are written as
+    <part>_<color>.stl in a shared frame, so importing them together in Bambu Studio
+    ("load as one object with multiple parts") lines the colors up."""
     if isinstance(parts, Manifold):
         parts = {name: parts}
     os.makedirs(out_dir, exist_ok=True)
@@ -436,14 +441,25 @@ def export(parts, name: str, out_dir: str = "out", printer: str = DEFAULT_PRINTE
     x_cursor = 0.0
     laid_out = {}
     for pname, p in parts.items():
-        p = on_bed(p)
-        reports.append(check(p, pname, printer))
-        to_trimesh(p).export(os.path.join(out_dir, f"{pname}.stl"))
-        lo, hi = _bounds(p)
-        placed = p.translate([x_cursor - lo[0], 0, 0])
+        members = p if isinstance(p, dict) else None
+        whole = union(*members.values()) if members else p
+        lo, hi = _bounds(whole)
+        shift = [-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]]   # same as on_bed()
+        whole = whole.translate(shift)
+        reports.append(check(whole, pname, printer))
+        to_trimesh(whole).export(os.path.join(out_dir, f"{pname}.stl"))
+        lo, hi = _bounds(whole)
+        dx = x_cursor - lo[0]
         x_cursor += (hi[0] - lo[0]) + spacing
-        laid_out[pname] = placed
-        scene.add_geometry(to_trimesh(placed), node_name=pname, geom_name=pname)
+        laid_out[pname] = whole.translate([dx, 0, 0])
+        if members:
+            for mname, m in members.items():
+                m = m.translate(shift)
+                to_trimesh(m).export(os.path.join(out_dir, f"{pname}_{mname}.stl"))
+                node = f"{pname}_{mname}"
+                scene.add_geometry(to_trimesh(m.translate([dx, 0, 0])), node_name=node, geom_name=node)
+        else:
+            scene.add_geometry(to_trimesh(laid_out[pname]), node_name=pname, geom_name=pname)
     plate = on_bed(union(*laid_out.values())) if len(laid_out) > 1 else None
     if plate is not None:
         lo, hi = _bounds(plate)
