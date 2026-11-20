@@ -1,6 +1,6 @@
 # Website Proposal — {{CLIENT NAME}}
 
-**Prepared by:** ELIO Website Studio
+**Prepared by:** Keystone Sites
 **Date:** {{DATE}}
 **Demo link:** {{DEMO URL}}
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ELIO Website Studio — client site generator.
+// Keystone Sites — client site generator.
 // Usage:
 //   node build.js <client-folder>      e.g. node build.js clients/sunshine-plumbing
 //   node build.js --all                builds every folder in clients/
@@ -236,7 +236,7 @@ function render(cfg) {
     GRAIN: fx ? '<div class="grain" aria-hidden="true"></div>' : "", SERVICES: servicesHtml, BAND: bandHtml, GALLERY: galleryHtml,
     ABOUT: aboutHtml, REVIEWS: reviewsHtml, VISIT: visitHtml, SOCIAL: socialHtml, ACTIONBAR: actionbar,
     YEAR: String(new Date().getFullYear()),
-    CREDIT: cfg.hideCredit ? "" : " · Website by ELIO Website Studio",
+    CREDIT: cfg.hideCredit ? "" : " · Website by Keystone Sites",
   };
   return TEMPLATE.replace(/\{\{(\w+)\}\}/g, (_, k) => (k in vars ? vars[k] : ""));
 }

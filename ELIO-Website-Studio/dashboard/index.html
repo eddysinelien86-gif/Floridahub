@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ELIO Studio Dashboard</title>
+<title>Keystone Sites Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap">
 <style>
@@ -109,7 +109,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>ELIO <span>Studio</span> Dashboard</h1>
+    <h1>Keystone <span>Sites</span> Dashboard</h1>
     <div class="tools">
       <button class="primary" id="addBtn">+ Add lead or client</button>
       <button id="exportBtn">Save backup</button>
@@ -132,7 +132,7 @@
     </div>
     <div class="offline" id="agentOff">
       <strong>You're on the offline copy of the dashboard.</strong> The demo agent and the Send button only work in the studio app.
-      <a href="http://localhost:4321/">Open the studio app</a>. If that link doesn't load, double-click <strong>ELIO Studio</strong> on your desktop first.
+      <a href="http://localhost:4321/">Open the studio app</a>. If that link doesn't load, double-click <strong>Keystone Sites</strong> on your desktop first.
     </div>
   </section>
 
@@ -234,7 +234,7 @@
     <p class="ok-msg" id="netOk" hidden>Connected.</p>
     <ol class="steps" id="netSteps">
       <li>Make a free account at <a href="https://app.netlify.com/signup" target="_blank" rel="noopener">app.netlify.com/signup</a>.</li>
-      <li>Click your profile picture, then <strong>User settings</strong> → <strong>Applications</strong> → <strong>New access token</strong>. Name it "ELIO Studio" and copy it.</li>
+      <li>Click your profile picture, then <strong>User settings</strong> → <strong>Applications</strong> → <strong>New access token</strong>. Name it "Keystone Sites" and copy it.</li>
       <li>Paste it here and click Connect.</li>
     </ol>
     <div class="linkbox"><input id="netToken" type="password" autocomplete="off" placeholder="Netlify token" aria-label="Netlify token"><button type="button" class="primary" id="netSave">Connect</button><button type="button" id="netDisconnect">Disconnect</button></div>
@@ -245,10 +245,10 @@
     <strong>2. Your own domain (optional, about $10–20 a year)</strong>
     <p class="note">Demo links become <strong id="domainExample">business-name.yourdomain.com</strong> instead of a random Netlify address.</p>
     <ol class="steps">
-      <li>In Netlify, open <strong>Domains</strong> → <strong>Add or register domain</strong> and buy one (for example <em>eliostudio.com</em>). Buying it in Netlify means there's nothing else to set up.</li>
+      <li>In Netlify, open <strong>Domains</strong> → <strong>Add or register domain</strong> and buy one (for example <em>keystonesitesfl.com</em>). Buying it in Netlify means there's nothing else to set up.</li>
       <li>Type it here and click Save. New and updated demos use it. Each new address can take a few minutes to start working.</li>
     </ol>
-    <div class="linkbox"><input id="domainInput" placeholder="eliostudio.com" aria-label="Your domain"><button type="button" class="primary" id="domainSave">Save</button></div>
+    <div class="linkbox"><input id="domainInput" placeholder="keystonesitesfl.com" aria-label="Your domain"><button type="button" class="primary" id="domainSave">Save</button></div>
     <p class="err-msg" id="domainErr" hidden></p><p class="ok-msg" id="domainOk" hidden></p>
   </div>
 
@@ -470,7 +470,7 @@ let sending = null;
 const findPhone = s => (String(s || "").match(/\+?1?[\s.-]*\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}/) || [""])[0].trim();
 const findEmail = s => (String(s || "").match(/[^\s@·,]+@[^\s@·,]+\.[a-z]{2,}/i) || [""])[0];
 function defaultMessage(i) {
-  return `Hi! This is ELIO Website Studio. I made a free preview of a new website for ${i.name}:\n\n${i.publicUrl || "[link]"}\n\nTake a look on your phone and let me know what you think. I can change anything you like: photos, colors, menu and prices. No cost to look!${textingOn ? "\n\nReply STOP to opt out." : ""}`;
+  return `Hi! This is Keystone Sites. I made a free preview of a new website for ${i.name}:\n\n${i.publicUrl || "[link]"}\n\nTake a look on your phone and let me know what you think. I can change anything you like: photos, colors, menu and prices. No cost to look!${textingOn ? "\n\nReply STOP to opt out." : ""}`;
 }
 function syncSend() {
   const i = sending; if (!i) return;
@@ -638,7 +638,7 @@ $("twClear").onclick = async () => { await post("/api/settings/twilio", { clear:
 // ---------- backup ----------
 $("exportBtn").onclick = () => {
   const blob = new Blob([JSON.stringify(items, null, 2)], { type: "application/json" });
-  Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `elio-backup-${today()}.json` }).click();
+  Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `keystone-backup-${today()}.json` }).click();
 };
 $("importBtn").onclick = () => $("importFile").click();
 $("importFile").onchange = async e => {

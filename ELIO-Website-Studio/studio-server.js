@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ELIO Studio server: runs the dashboard at http://localhost:4321 and the demo-building agent.
+// Keystone Sites studio server: runs the dashboard at http://localhost:4321 and the demo-building agent.
 // Start it with ./start-studio.sh (or: node studio-server.js). No dependencies.
 //
 // The agent uses the Claude Code CLI installed on this computer (`claude`), signed in with your
@@ -89,7 +89,7 @@ function serveFile(res, file) {
 // ---------- the agent ----------
 function agentPrompt(request, outFile) {
   const example = fs.readFileSync(path.join(ROOT, "clients", "lost-in-da-souse-kitchen", "site.config.json"), "utf8");
-  return `You are the lead designer and copywriter at ELIO Website Studio. You build demo websites that local
+  return `You are the lead designer and copywriter at Keystone Sites, a web design studio. You build demo websites that local
 business owners see and immediately want to buy. They must look like a top restaurant chain or premium local
 brand made them: bold, confident, specific, and built to make the phone ring or orders come in.
 
@@ -424,7 +424,7 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/settings/domain" && req.method === "POST") {
       const body = await readBody(req);
       const domain = String(body.domain || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
-      if (domain && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) return send(res, 400, { error: "Type just the domain, like eliostudio.com" });
+      if (domain && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) return send(res, 400, { error: "Type just the domain, like keystonesitesfl.com" });
       const st = loadSettings(); st.demoDomain = domain; saveSettings(st);
       return send(res, 200, { ok: true, demoDomain: domain });
     }
@@ -529,7 +529,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`ELIO Studio is running at http://localhost:${PORT}`);
+  console.log(`Keystone Sites studio is running at http://localhost:${PORT}`);
   console.log(`Agent uses: ${CLAUDE_BIN}`);
   pump();
   setInterval(pump, TICK_MS);   // checks every minute whether usage is back

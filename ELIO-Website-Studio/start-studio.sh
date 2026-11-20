@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts the ELIO Studio app (dashboard + demo agent) and opens it in your browser.
+# Starts the Keystone Sites studio app (dashboard + demo agent) and opens it in your browser.
 # --no-open starts it in the background only (used at login).
 cd "$(dirname "$0")"
 export NVM_DIR="$HOME/.nvm"

@@ -1,6 +1,6 @@
-# ELIO Website Studio
+# Keystone Sites
 
-A toolkit for building websites for local businesses and selling them.
+Keystone Sites builds and sells websites for local businesses. This folder (it keeps its old name, `ELIO-Website-Studio`, so your shortcuts keep working) holds the whole toolkit.
 
 ```
 ELIO-Website-Studio/
@@ -9,7 +9,7 @@ ELIO-Website-Studio/
 ├── template/index.html   # the website design (3 looks: bold, elegant, modern)
 ├── clients/              # one folder per client, each with site.config.json (+ assets/)
 ├── dist/                 # built websites, ready to upload
-├── studio-site/          # ELIO's own sales page
+├── studio-site/          # your studio's own sales page
 ├── dashboard/            # your business dashboard (leads, clients, income)
 └── business/             # pricing, sales script, proposal and intake templates
 ```
@@ -58,7 +58,7 @@ Rebuild every client at once with `node build.js --all`.
 | `sticker` | text for the spinning badge in the hero (default: first highlight); `false` hides it |
 | `sampleMedia` | `true` adds a small "Sample photos for preview" label when using stock photos |
 | `effects` | `false` turns off animations, ticker, sticker and grain |
-| `hideCredit` | `true` removes "Website by ELIO Website Studio" |
+| `hideCredit` | `true` removes "Website by Keystone Sites" |
 
 **Photos make the biggest difference.** Put the owner's photos in `clients/<name>/assets/` and use
 `"assets/photo.jpg"` for `hero.image`, `aboutImage`, `gallery` or a service's `image`.
@@ -72,7 +72,7 @@ Each finished site is one folder in `dist/`. Free or cheap options:
 Connect the client's domain in the host's settings, and HTTPS is set up automatically.
 
 ## Your dashboard and demo agent
-**Start it:** double-click **ELIO Studio** on your desktop (or run `./start-studio.sh`). It opens at http://localhost:4321.
+**Start it:** double-click **Keystone Sites** on your desktop (or run `./start-studio.sh`). It opens at http://localhost:4321.
 To add the desktop icon the first time, run `./install-desktop-icon.sh`.
 
 **Demo agent:** type a business into the box at the top, for example
