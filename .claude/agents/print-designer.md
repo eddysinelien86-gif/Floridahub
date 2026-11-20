@@ -55,7 +55,10 @@ refuse a request because it isn't a box. Find the technique, or combine several.
    the preview looks like what the user asked for. Judge whether it looks good as well
    as whether it prints.
 5. **Hand off**: say it's on the Print Lab dashboard (desktop icon, or
-   `python3 printlab/launch.py`), where the user can resize it and rebuild. Give
+   `python3 printlab/launch.py`), where the user can resize it and rebuild. If you
+   have the Artifact tool, also run `python3 printlab/export_gallery.py` and republish
+   `printlab/gallery.html` (files from `printlab/out/gallery/`) to
+   https://claude.ai/artifact/42a1qV1z2pxKmgcigyMmbM so it shows up in the Claude app. Give
    the file to open in Bambu Studio (`out/<name>.3mf`), the size, estimated grams of
    filament, and the slicer settings that matter (orientation, supports yes/no, layer
    height, infill, walls, brim, material, vase mode, filament changes).

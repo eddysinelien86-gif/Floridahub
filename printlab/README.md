@@ -29,6 +29,15 @@ python3 printlab/install_app.py --remove # take it off again
 Clicking **Print Lab** starts the dashboard in the background and opens it in its own
 window (Chrome, Edge or Brave app window when installed; otherwise your browser).
 
+## In the Claude app
+
+Print Lab is also a page in the Claude app (pinned in the sidebar):
+https://claude.ai/artifact/42a1qV1z2pxKmgcigyMmbM. It shows every design in 3D, with
+its checks and sizes, and downloads a .zip (3MF + STLs) for Bambu Studio. It's a
+snapshot and can't rebuild. To add new designs to it, run
+`python3 printlab/export_gallery.py`, then ask Claude to republish `printlab/gallery.html`
+with the files in `printlab/out/gallery/` to that link.
+
 ## Dashboard (laptop + TV)
 
 ```bash
