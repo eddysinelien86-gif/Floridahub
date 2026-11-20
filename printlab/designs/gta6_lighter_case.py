@@ -1,6 +1,7 @@
 """GTA VI lighter case
 
-A sleeve for a BIC Maxi (about 82 x 25 x 15 mm) with the art bulging out all around.
+A sleeve for a BIC Maxi (about 82 x 25 x 15 mm) with the art bulging out on the front
+and back and swirl lines around the sides.
 Print upright in PETG, no supports. Slide the lighter in from the top; push it out
 through the hole in the bottom. The metal top and flame stay uncovered.
 """
@@ -25,7 +26,8 @@ FLOOR = 1.6         # bottom thickness
 PUSH_HOLE = 10      # hole in the bottom to push the lighter out
 
 # ---- art ----
-ART_H = 56          # picture height
+ART_H = 42          # picture height
+SIDES = 2           # 1 = art on the front only, 2 = front and back
 RAISE = 0.8         # how far the whole picture bulges out
 DETAIL = 1.0        # extra bulge for light parts
 TEXTURE = 0.35      # swirl lines around the back
@@ -49,8 +51,8 @@ sleeve -= hull(Manifold.extrude(ellipse(A_in, B_in), 0.01).translate([0, 0, SLEE
                Manifold.extrude(ellipse(A_in + 0.8, B_in + 0.8), 0.01).translate([0, 0, SLEEVE_H]))
 
 # ---- art wrapped all the way around the oval ----
-# arc-length table along the outside: start at the back (seam), go left side -> front -> right side
-t = np.linspace(math.pi / 2, math.pi / 2 + 2 * math.pi, 2001)
+# arc-length table along the outside: start on the right side (seam), go back -> left side -> front
+t = np.linspace(0, 2 * math.pi, 2001)
 px, py = A * np.cos(t), B * np.sin(t)
 nx, ny = B * np.cos(t), A * np.sin(t)
 nl = np.hypot(nx, ny); nx, ny = nx / nl, ny / nl
@@ -80,12 +82,15 @@ if os.path.isfile(src):
     alpha = np.asarray(im.getchannel("A").resize((ax, ay), Image.LANCZOS), float) / 255 > 0.5
     g = np.asarray(im.convert("L").resize((ax, ay), Image.LANCZOS).filter(ImageFilter.GaussianBlur(0.8)), float) / 255
     g = (g - g[alpha].min()) / max(1e-6, np.ptp(g[alpha]))
-    x0 = int((perim / 2 - aw / 2) / step)               # front center sits half way round
+    centers = [0.75 * perim] + ([0.25 * perim] if SIDES == 2 else [])   # front, then back
+    assert SIDES == 1 or aw < perim / 2 - 2, "art too wide for both sides: lower ART_H"
     y0 = (gy - ay) // 2
-    reg = hz[y0:y0 + ay, x0:x0 + ax]
     halo = ndi.binary_dilation(alpha, iterations=int(1.0 / step)) & ~alpha
-    reg[halo] = embed
-    reg[alpha] = embed + RAISE + DETAIL * g[alpha]
+    for cx in centers:
+        x0 = int((cx - aw / 2) / step)
+        reg = hz[y0:y0 + ay, x0:x0 + ax]
+        reg[halo] = embed
+        reg[alpha] = embed + RAISE + DETAIL * g[alpha]
     plate = heightmap(hz, width)
     z0 = 3.0
 
@@ -116,7 +121,8 @@ def make_label(out_dir):
     art = Image.open(src)
     ah = mm(ART_H)
     art = art.resize((round(art.width * ah / art.height), ah), Image.LANCZOS)
-    label.paste(art, ((W - art.width) // 2, (H - ah) // 2), art)
+    for cx in [0.75] + ([0.25] if SIDES == 2 else []):
+        label.paste(art, (round(W * cx - art.width / 2), (H - ah) // 2), art)
     ImageDraw.Draw(label).rectangle((0, 0, W - 1, H - 1), outline=(160, 160, 160), width=2)
     label.save(os.path.join(out_dir, "gta6_lighter_case_label.png"), dpi=(dpi, dpi))
     print(f"label: {perim:.1f} x {SLEEVE_H - 6} mm, print at 100%")
