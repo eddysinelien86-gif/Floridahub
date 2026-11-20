@@ -30,11 +30,13 @@ def main() -> None:
             continue
         name = d["name"]
         shutil.copy(os.path.join(OUT, f"{name}.png"), os.path.join(GAL, "img", f"{name}.png"))
-        names = [f"{name}.3mf"] + [p["stl"] for p in rep["parts"]] + [f"{name}_report.txt"]
+        stls = [p["stl"] for p in rep["parts"]]
+        with_stl = sum(os.path.getsize(os.path.join(OUT, n)) for n in stls) < 6_000_000
+        names = [f"{name}.3mf"] + (stls if with_stl else []) + [f"{name}_report.txt"]
         payload = {n: base64.b64encode(open(os.path.join(OUT, n), "rb").read()).decode() for n in names}
         with open(os.path.join(GAL, "files", f"{name}.json"), "w") as f:
             json.dump(payload, f)
-        items.append({k: d[k] for k in ("name", "title", "notes", "params")} | {"report": rep})
+        items.append({k: d[k] for k in ("name", "title", "notes", "params")} | {"report": rep, "stl_included": with_stl})
     with open(os.path.join(GAL, "designs.json"), "w") as f:
         json.dump({"designs": items}, f, indent=1)
     print(f"packaged {len(items)} designs into {GAL}")
