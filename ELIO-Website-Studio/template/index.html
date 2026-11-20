@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<style>
+  :root { --primary: {{PRIMARY}}; --accent: {{ACCENT}}; --text: #1d2330; --muted: #5b6475; --bg: #ffffff; --soft: #f4f6f9; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: {{FONT}}; color: var(--text); background: var(--bg); line-height: 1.6; }
+  a { color: var(--primary); }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  header { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #e6e9ef; z-index: 10; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; flex-wrap: wrap; }
+  .logo { font-weight: 800; font-size: 1.2rem; color: var(--primary); text-decoration: none; }
+  nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  nav a { text-decoration: none; color: var(--text); font-weight: 500; }
+  nav a:hover { color: var(--primary); }
+  .hero { background: var(--primary); {{HERO_IMAGE}} background-size: cover; background-position: center; color: #fff; padding: 110px 0 100px; }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.15; margin: 0 0 16px; max-width: 760px; }
+  .hero p { font-size: 1.2rem; max-width: 620px; opacity: .92; margin: 0 0 28px; }
+  .btn { display: inline-block; background: var(--accent); color: #111; padding: 14px 26px; border-radius: 10px; font-weight: 700; text-decoration: none; border: 0; cursor: pointer; font-size: 1rem; }
+  .btn:hover { filter: brightness(1.05); }
+  .section { padding: 72px 0; }
+  .section:nth-of-type(even) { background: var(--soft); }
+  .section h2 { font-size: 2rem; margin: 0 0 28px; }
+  .lead { font-size: 1.15rem; color: var(--muted); max-width: 800px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .card { background: #fff; border: 1px solid #e6e9ef; border-radius: 14px; padding: 24px; margin: 0; }
+  .card h3 { margin: 0 0 8px; color: var(--primary); }
+  .card p { margin: 0; color: var(--muted); }
+  .price { margin-top: 12px !important; font-weight: 700; color: var(--text) !important; }
+  blockquote cite { display: block; margin-top: 12px; font-style: normal; font-weight: 600; }
+  .contact { display: grid; gap: 32px; }
+  .contact.two { grid-template-columns: 1fr 1fr; }
+  .hours { list-style: none; padding: 0; margin: 0; max-width: 360px; }
+  .hours li { display: flex; justify-content: space-between; border-bottom: 1px solid #e6e9ef; padding: 6px 0; }
+  .form label { display: block; font-weight: 600; margin-bottom: 14px; }
+  .form input, .form textarea { width: 100%; margin-top: 6px; padding: 12px; border: 1px solid #cfd5df; border-radius: 8px; font: inherit; }
+  footer { background: #11151c; color: #b8c0cc; padding: 28px 0; font-size: .9rem; }
+  @media (max-width: 760px) { .contact.two { grid-template-columns: 1fr; } .hero { padding: 80px 0 70px; } nav { gap: 12px; } }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="logo" href="#">{{NAME}}</a><nav>{{NAV}}</nav></div></header>
+<main>
+  <section class="hero"><div class="wrap">
+    <h1>{{HEADLINE}}</h1>
+    <p>{{SUBHEADLINE}}</p>
+    <a class="btn" href="{{CTA_HREF}}">{{CTA_TEXT}}</a>
+  </div></section>
+  {{SERVICES}}
+  {{ABOUT}}
+  {{REVIEWS}}
+  {{CONTACT}}
+</main>
+<footer><div class="wrap">© {{YEAR}} {{NAME}}{{CREDIT}}</div></footer>
+</body>
+</html>
