@@ -187,7 +187,8 @@ function runJob(job) {
     let out = "", err = "";
     let child;
     try {
-      child = spawn(CLAUDE_BIN, args, { cwd: ROOT, env: process.env });
+      // stdin "ignore": Claude Code must not wait for piped input.
+      child = spawn(CLAUDE_BIN, args, { cwd: ROOT, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
     } catch (e) {
       return fail(`Couldn't start Claude Code (${e.message}).`);
     }
@@ -203,12 +204,14 @@ function runJob(job) {
     child.on("close", (code) => {
       clearTimeout(timer);
       if (job.status !== "working") return; // already failed via 'error'
-      let notes = "";
-      try { notes = String(JSON.parse(out).result || "").trim(); } catch { notes = out.trim(); }
+      let notes = "", isError = false;
+      try { const r = JSON.parse(out); notes = String(r.result || "").trim(); isError = !!r.is_error; } catch { notes = out.trim(); }
+      const why = (notes || err.split("\n").filter((l) => l.trim() && !/no stdin data received|redirect stdin/i.test(l)).join(" ")).trim();
       if (!fs.existsSync(outFile)) {
-        return fail(code === null
-          ? "It took too long and was stopped. Try again with more details (town, phone)."
-          : `The agent didn't produce a website. ${(err || notes).trim().slice(-400)}`);
+        if (code === null) return fail("It took too long and was stopped. Try again with more details (town, phone).");
+        if (/limit|usage|quota|rate/i.test(why)) return fail(`You've reached your Claude usage limit for now. Try again after it resets. (${why.slice(0, 200)})`);
+        if (/log ?in|auth|credential|unauthori/i.test(why)) return fail("Claude Code isn't signed in. Open a terminal, run `claude`, sign in, then try again.");
+        return fail(`The agent didn't produce a website.${why ? " " + why.slice(-400) : (isError ? " Claude Code reported an error." : "")}`);
       }
       let cfg;
       try { cfg = JSON.parse(fs.readFileSync(outFile, "utf8")); } catch { return fail("The agent wrote an invalid settings file. Try again."); }
