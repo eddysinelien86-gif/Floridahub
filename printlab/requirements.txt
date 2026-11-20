@@ -1,0 +1,6 @@
+manifold3d>=3.0
+trimesh>=4.0
+numpy
+networkx
+lxml
+matplotlib
