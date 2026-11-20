@@ -52,6 +52,12 @@ Rebuild every client at once with `node build.js --all`.
 | `social` | `{ instagram, facebook, tiktok }` links |
 | `contactTitle`, `contactFormAction` | contact section title and optional form endpoint |
 | `seo` | page `title` and `description` for Google |
+| `hero.video` | an `.mp4` link (or `assets/hero.mp4`) that plays silently behind the headline |
+| `video` | `{ src, poster }`: a video shown in the gallery section |
+| `ticker` | words for the scrolling strip (default: menu items + highlights); `false` hides it |
+| `sticker` | text for the spinning badge in the hero (default: first highlight); `false` hides it |
+| `sampleMedia` | `true` adds a small "Sample photos for preview" label when using stock photos |
+| `effects` | `false` turns off animations, ticker, sticker and grain |
 | `hideCredit` | `true` removes "Website by ELIO Website Studio" |
 
 **Photos make the biggest difference.** Put the owner's photos in `clients/<name>/assets/` and use

@@ -105,16 +105,34 @@ function render(cfg) {
     ...(cfg.highlights || []).map((h) => `<li>${ICON.check}${esc(h)}</li>`),
     rating && `<li>${ICON.star}${esc(rating.value)} on ${esc(rating.source || "Google")}${rating.count ? ` (${esc(rating.count)} reviews)` : ""}</li>`,
   ].filter(Boolean).slice(0, 4);
-  const heroHtml = `<section class="hero${hero.image ? " has-img" : ""}"${hero.image ? ` style="background-image:${cssUrl(hero.image)}"` : ""}>
+  const fx = cfg.effects !== false;
+  const words = esc(hero.headline || b.name).split(/\s+/).map((w, i) => fx ? `<span class="w" style="animation-delay:${i * 90}ms">${w}</span>` : w).join(" ");
+  const stickerText = cfg.sticker === false ? "" : (cfg.sticker || (cfg.highlights || [])[0] || "");
+  const stickerHtml = fx && stickerText ? (() => {
+    const txt = esc(`${stickerText} • ${stickerText} • `);
+    return `<div class="sticker" aria-hidden="true"><svg viewBox="0 0 150 150"><defs><path id="ring" d="M75 75 m-58 0 a58 58 0 1 1 116 0 a58 58 0 1 1 -116 0"/></defs><text><textPath href="#ring" textLength="360">${txt}</textPath></text></svg><div class="core">${ICON.star}</div></div>`;
+  })() : "";
+  const heroCls = hero.video ? " has-video" : hero.image ? " has-img" : "";
+  const heroHtml = `<section class="hero${heroCls}"${hero.image && !hero.video ? ` style="background-image:${cssUrl(hero.image)}"` : ""}>
+  ${hero.video ? `<video class="bg" autoplay muted loop playsinline preload="metadata"${hero.image ? ` poster="${esc(hero.image)}"` : ""}><source src="${esc(hero.video)}" type="video/mp4"></video>` : ""}
   <div class="pattern" aria-hidden="true"></div>
+  ${fx ? '<div class="blob" aria-hidden="true"></div><div class="blob two" aria-hidden="true"></div>' : ""}
+  ${stickerHtml}
+  ${cfg.sampleMedia && (hero.image || hero.video) ? '<span class="sample-note">Sample photos for preview</span>' : ""}
   <div class="wrap">
     ${hero.eyebrow || b.tagline ? `<p class="eyebrow" style="color:var(--accent)">${esc(hero.eyebrow || b.tagline)}</p>` : ""}
-    <h1>${esc(hero.headline || b.name)}</h1>
+    <h1>${words}</h1>
     ${hero.subheadline ? `<p class="sub">${esc(hero.subheadline)}</p>` : ""}
     <div class="ctas">${btn("btn-accent", primary.href, primary.label, primary.icon)}${secondary ? btn("btn-light", secondary.href, secondary.label, secondary.icon) : ""}</div>
     ${chips.length ? `<ul class="chips">${chips.join("")}</ul>` : ""}
   </div>
 </section>`;
+
+  // Scrolling ticker
+  const tickerItems = (cfg.ticker || [...services.map((x) => x.title), ...(cfg.highlights || [])]).filter(Boolean).slice(0, 10);
+  const tickerHtml = fx && cfg.ticker !== false && tickerItems.length >= 3
+    ? `<div class="ticker" aria-hidden="true"><div class="track">${[...tickerItems, ...tickerItems, ...tickerItems, ...tickerItems].map((x) => `<span>${esc(x)}</span>`).join("")}</div></div>`
+    : "";
 
   // Info strip
   const hoursSummary = cfg.hoursSummary || (hours[0] ? `${hours[0].days}: ${hours[0].time}` : "");
@@ -130,9 +148,9 @@ function render(cfg) {
   // Menu / services
   const anyImg = services.some((s) => s.image);
   const servicesHtml = services.length ? `<section class="block" id="services"><div class="wrap">
-  <div class="head"><div><p class="eyebrow">${esc(cfg.servicesEyebrow || servicesNav)}</p><h2>${esc(cfg.servicesTitle || "What we do")}</h2></div>${cfg.servicesIntro ? `<p>${esc(cfg.servicesIntro)}</p>` : ""}</div>
-  <div class="cards">${services.map((s) => `<article class="card">
-    ${anyImg ? (s.image ? `<div class="ph" style="background-image:${cssUrl(s.image)}" role="img" aria-label="${esc(s.title)}"></div>` : `<div class="ph blank" aria-hidden="true"><span>${esc(s.title)}</span></div>`) : ""}
+  <div class="head reveal"><div><p class="eyebrow">${esc(cfg.servicesEyebrow || servicesNav)}</p><h2>${esc(cfg.servicesTitle || "What we do")}</h2></div>${cfg.servicesIntro ? `<p>${esc(cfg.servicesIntro)}</p>` : ""}</div>
+  <div class="cards">${services.map((s) => `<article class="card reveal">
+    ${anyImg ? `<div class="ph-wrap">${s.image ? `<div class="ph" style="background-image:${cssUrl(s.image)}" role="img" aria-label="${esc(s.title)}"></div>` : `<div class="ph blank" aria-hidden="true"><span>${esc(s.title)}</span></div>`}</div>` : ""}
     <div class="body">${s.tag ? `<span class="tag">${esc(s.tag)}</span>` : ""}<div class="row"><h3>${esc(s.title)}</h3>${s.price ? `<span class="price">${esc(s.price)}</span>` : ""}</div><p>${esc(s.description)}</p></div>
   </article>`).join("")}</div>
 </div></section>` : "";
@@ -143,30 +161,32 @@ function render(cfg) {
     : btn("btn-accent", primary.href, primary.label, primary.icon);
   const band = cfg.band || {};
   const bandHtml = band.headline !== "" ? `<section class="band"><div class="wrap">
-  <div><h2>${esc(band.headline || "Ready when you are.")}</h2>${band.text ? `<p>${esc(band.text)}</p>` : ""}</div>
+  <div class="reveal"><h2>${esc(band.headline || "Ready when you are.")}</h2>${band.text ? `<p>${esc(band.text)}</p>` : ""}</div>
   <div class="ctas">${bandBtns}</div>
 </div></section>` : "";
 
   // Gallery
   const pics = (cfg.gallery || []).map((g) => (typeof g === "string" ? { src: g } : g)).filter((g) => g && g.src);
   const shown = pics.length >= 5 ? pics.slice(0, 5) : pics.length >= 3 ? pics.slice(0, 3) : [];
-  const galleryHtml = shown.length ? `<section class="block tint" id="gallery"><div class="wrap">
-  <div class="head"><div><p class="eyebrow">Gallery</p><h2>${esc(cfg.galleryTitle || "Take a look")}</h2></div></div>
-  <div class="gallery"${shown.length === 3 ? ' style="grid-template-columns:repeat(3,1fr);grid-auto-rows:260px"' : ""}>${shown.map((g, i) =>
-    `<figure role="img" aria-label="${esc(g.alt || b.name)}" style="background-image:${cssUrl(g.src)}${shown.length === 3 && i === 0 ? ";grid-column:auto;grid-row:auto" : ""}"></figure>`).join("")}</div>
+  const vid = cfg.video && cfg.video.src ? cfg.video : null;
+  const galleryHtml = shown.length || vid ? `<section class="block tint" id="gallery"><div class="wrap">
+  <div class="head reveal"><div><p class="eyebrow">Gallery</p><h2>${esc(cfg.galleryTitle || "Take a look")}</h2></div></div>
+  ${vid ? `<div class="media-video reveal" style="margin-bottom:${shown.length ? "22px" : "0"}"><video controls muted playsinline preload="metadata"${vid.poster ? ` poster="${esc(vid.poster)}"` : ""}><source src="${esc(vid.src)}" type="video/mp4"></video></div>` : ""}
+  ${shown.length ? `<div class="gallery"${shown.length === 3 ? ' style="grid-template-columns:repeat(3,1fr);grid-auto-rows:260px"' : ""}>${shown.map((g, i) =>
+    `<figure class="reveal" role="img" aria-label="${esc(g.alt || b.name)}" style="background-image:${cssUrl(g.src)}${shown.length === 3 && i === 0 ? ";grid-column:auto;grid-row:auto" : ""}"></figure>`).join("")}</div>` : ""}
 </div></section>` : "";
 
   // About
-  const ratingHtml = rating ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span>${esc(rating.value)} on ${esc(rating.source || "Google")}${rating.count ? ` <small>(${esc(rating.count)} reviews)</small>` : ""}</div>` : "";
+  const ratingHtml = rating ? `<div class="rating"><span class="stars" aria-hidden="true">★★★★★</span><span${fx ? ` data-count="${esc(rating.value)}"` : ""}>${esc(rating.value)}</span> on ${esc(rating.source || "Google")}${rating.count ? ` <small>(${esc(rating.count)} reviews)</small>` : ""}</div>` : "";
   const aboutHtml = cfg.about ? `<section class="block" id="about"><div class="wrap"><div class="about${cfg.aboutImage ? "" : " solo"}">
-  <div><p class="eyebrow">${esc(cfg.aboutEyebrow || "Our story")}</p><h2>${esc(cfg.aboutTitle || `About ${b.name}`)}</h2><p>${esc(cfg.about)}</p>${ratingHtml}</div>
+  <div class="reveal"><p class="eyebrow">${esc(cfg.aboutEyebrow || "Our story")}</p><h2>${esc(cfg.aboutTitle || `About ${b.name}`)}</h2><p>${esc(cfg.about)}</p>${ratingHtml}</div>
   ${cfg.aboutImage ? `<div class="pic" role="img" aria-label="${esc(b.name)}" style="background-image:${cssUrl(cfg.aboutImage)}"></div>` : ""}
 </div></div></section>` : "";
 
   // Reviews (real ones only)
   const reviewsHtml = testimonials.length ? `<section class="block" id="reviews"><div class="wrap">
   <div class="head"><div><p class="eyebrow">Reviews</p><h2>What customers say</h2></div></div>
-  <div class="reviews">${testimonials.map((r) => `<blockquote class="review"><p>“${esc(r.quote)}”</p><cite>${esc(r.name)}</cite></blockquote>`).join("")}</div>
+  <div class="reviews">${testimonials.map((r) => `<blockquote class="review reveal"><p>“${esc(r.quote)}”</p><cite>${esc(r.name)}</cite></blockquote>`).join("")}</div>
 </div></section>` : "";
 
   // Visit / contact
@@ -212,7 +232,8 @@ function render(cfg) {
     NAME: esc(b.name || "Business Name"),
     NAV: nav,
     HEADER_CTA: btn("btn-accent", primary.href, primary.label.replace(/^Call \(.*/, "Call now"), ""),
-    HERO: heroHtml, INFO: infoHtml, SERVICES: servicesHtml, BAND: bandHtml, GALLERY: galleryHtml,
+    HERO: heroHtml, TICKER: tickerHtml, INFO: infoHtml,
+    GRAIN: fx ? '<div class="grain" aria-hidden="true"></div>' : "", SERVICES: servicesHtml, BAND: bandHtml, GALLERY: galleryHtml,
     ABOUT: aboutHtml, REVIEWS: reviewsHtml, VISIT: visitHtml, SOCIAL: socialHtml, ACTIONBAR: actionbar,
     YEAR: String(new Date().getFullYear()),
     CREDIT: cfg.hideCredit ? "" : " · Website by ELIO Website Studio",

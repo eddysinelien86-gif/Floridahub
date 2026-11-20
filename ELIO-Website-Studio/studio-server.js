@@ -129,11 +129,18 @@ Every field you can use:
 - seo: {title, description} with the city and main service for Google
 - testimonials: always []
 
-PHOTOS (they make the biggest difference):
-- Only use image URLs from the business's OWN official website or official ordering page, found with WebFetch,
-  that are direct image links (.jpg, .jpeg, .png, .webp). Never use other people's photos, Google/Yelp/Instagram
-  images, or stock photos. If you find none, leave out every image field: the design looks good without them.
-- If you used any photos, list them in your final notes so the owner can approve them.
+PHOTOS AND VIDEO (they make the biggest difference, always include them):
+- First choice: direct image links (.jpg, .jpeg, .png, .webp) from the business's OWN official website or official
+  ordering page, found with WebFetch.
+- Otherwise use free stock media as SAMPLES that match what the business sells (e.g. fried wings, catfish, burgers,
+  a barber chair, a clean bathroom): photos from images.unsplash.com or images.pexels.com, and optionally one short
+  looping video as a direct .mp4 link from videos.pexels.com. Both sites allow free commercial use. Only use URLs you
+  confirmed exist with WebFetch. Never use Google, Yelp, Instagram, Facebook or other people's photos.
+  When any stock media is used, set "sampleMedia": true (the site then shows a small "Sample photos" label).
+- Fill: hero.image (wide, dramatic, appetizing), an image for every service card, "gallery" with exactly 5 photos,
+  "aboutImage" (portrait). Add hero.video (an .mp4 URL) only if you found a fitting one; hero.image stays as its poster.
+- Use image size parameters for speed, e.g. images.unsplash.com/...?w=1600&q=80 for the hero and ?w=800&q=75 for cards.
+- In your final notes, say which photos/video are stock samples to replace with the owner's own.
 
 RULES:
 - Never invent facts: no made-up prices, reviews, ratings, awards, years in business, staff names or links.
