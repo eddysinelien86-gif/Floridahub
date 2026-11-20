@@ -84,37 +84,70 @@ function serveFile(res, file) {
 
 // ---------- the agent ----------
 function agentPrompt(request, outFile) {
-  const example = fs.readFileSync(path.join(ROOT, "clients", "_example-plumbing", "site.config.json"), "utf8");
-  return `You are the website builder for ELIO Website Studio, which makes demo websites for local businesses.
+  const example = fs.readFileSync(path.join(ROOT, "clients", "lost-in-da-souse-kitchen", "site.config.json"), "utf8");
+  return `You are the lead designer and copywriter at ELIO Website Studio. You build demo websites that local
+business owners see and immediately want to buy. They must look like a top restaurant chain or premium local
+brand made them: bold, confident, specific, and built to make the phone ring or orders come in.
 
 THE USER'S REQUEST:
 """
 ${request}
 """
 
-YOUR JOB:
-1. Identify the exact business (and the exact location, if it has several). Search the web for its public details:
-   address, phone, opening hours, what it sells or does, menu items or services, prices if published, and its
-   Instagram or other social pages. Prefer details the user gave you over anything you find online.
-2. Write ONE JSON file to this exact path: ${outFile}
-   It must follow the same format as this example config:
+STEP 1: RESEARCH (use WebSearch and WebFetch)
+Find the exact business and location. Collect: name, address, phone, hours for each day, what they sell,
+signature items, real prices if published, Google rating and review count, official website, official online
+ordering links (their own site, Toast, Square, ChowNow, order.online, DoorDash, Uber Eats, Grubhub), and social
+pages (Instagram, Facebook, TikTok). Details in the user's request always win over what you find.
+
+STEP 2: WRITE ONE JSON FILE to exactly this path: ${outFile}
+Use this finished, high-quality config as your model for format, tone and level of detail:
 ${example}
-   Extra optional fields: "servicesNav" (menu link text, e.g. "Menu" for restaurants), "hero.ctaLink" (a URL),
-   "hero.image" (leave out), "contactFormAction" (leave empty).
+
+Every field you can use:
+- business: name, tagline, phone, email, address, hours: [{days, time}]
+- theme.style: "bold" (restaurants, food trucks, barbers, gyms, auto, anything loud),
+  "elegant" (salons, spas, boutiques, fine dining, law, real estate), "modern" (trades, cleaning, clinics, tech, everything else)
+- theme.primary: a deep brand color (white text must read well on it). theme.accent: a bright pop color for buttons.
+  Base both on the business's own logo/signage colors when you can find them.
+- announcement: one short line for the top bar (an opening, late hours, a real promotion). Optional.
+- hero: eyebrow (location or short claim), headline (max 6 words, punchy, in the business's voice),
+  subheadline (one sentence: what, where, why), ctaText + ctaLink (optional: the main action URL),
+  secondaryText + secondaryLink (optional), image (optional photo URL, see PHOTOS)
+- highlights: 2-3 short real selling points shown as chips (e.g. "Open until 2 AM", "Family owned", "Free estimates")
+- rating: {value, count, source} ONLY if you found the real numbers (e.g. Google)
+- hoursSummary: one short line for the info strip (e.g. "Open daily · until 2 AM")
+- order: [{label, url}] official ordering/booking links only, best first (e.g. {"label":"Order pickup","url":...})
+- servicesNav ("Menu" for food), servicesEyebrow, servicesTitle, servicesIntro (one sentence)
+- services: 3, 4 or 6 items of {title, description, price?, tag?, image?}. Signature items first.
+  tag examples: "Most popular", "Signature", "New". Descriptions make people hungry/interested: concrete, sensory, short.
+- band: {headline, text}: a bold call-to-action line, e.g. "Late-night cravings? We got you."
+- about, aboutTitle, aboutEyebrow, aboutImage?
+- gallery: 3 or 5 photo URLs (optional, see PHOTOS)
+- social: {instagram, facebook, tiktok} full URLs you verified
+- contactTitle: e.g. "Pull up", "Visit us", "Book your visit"
+- seo: {title, description} with the city and main service for Google
+- testimonials: always []
+
+PHOTOS (they make the biggest difference):
+- Only use image URLs from the business's OWN official website or official ordering page, found with WebFetch,
+  that are direct image links (.jpg, .jpeg, .png, .webp). Never use other people's photos, Google/Yelp/Instagram
+  images, or stock photos. If you find none, leave out every image field: the design looks good without them.
+- If you used any photos, list them in your final notes so the owner can approve them.
 
 RULES:
-- Use only details you actually found or the user gave you. Never invent prices, reviews, awards, years in business,
-  or staff names. If you can't confirm a detail, leave it out (omit "price"; omit "phone" or "email" if unknown).
-- "testimonials" must be an empty list.
-- "about": 2-3 friendly sentences built only from facts you found, ending with "(Demo text: confirm with the owner.)"
-- Pick "theme.primary" and "theme.accent" colors that suit the business (primary must be dark enough for white text).
-- Use 3, 4 or 6 "services" so the cards fill their rows.
-- Write a short, punchy hero headline in the business's own voice.
-- If the phone is unknown, set "hero.ctaText" to "Get directions" and "hero.ctaLink" to a Google Maps search URL for the address.
-- Do not create or change any other file.
+- Never invent facts: no made-up prices, reviews, ratings, awards, years in business, staff names or links.
+  If unsure, leave the field out.
+- "about": 2-3 sentences from real facts, ending with "(Demo text: confirm with the owner.)"
+- No phone found: set hero.ctaText "Get directions" and hero.ctaLink to a Google Maps search URL for the address
+  (unless there is an official order link, which then comes first).
+- Don't create or change any other file.
 
-When the file is written, reply with ONLY a short plain-text list of what the owner should confirm before launch
-(for example hours that differ between listings, missing prices, missing photos). No other commentary.`;
+QUALITY CHECK before you finish: Would the owner be proud to show this? Is the headline specific to THIS
+business (not generic)? Are the colors right for the brand? Is every fact verified?
+
+Finally, reply with ONLY a short plain-text list for the user: what to confirm with the owner before launch
+(e.g. hours that differ between listings, prices not found, photos used, missing phone). No other commentary.`;
 }
 
 let running = false;

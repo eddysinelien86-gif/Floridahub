@@ -6,7 +6,7 @@ A toolkit for building websites for local businesses and selling them.
 ELIO-Website-Studio/
 ├── build.js              # turns a client's config into a finished website
 ├── new-client.sh         # starts a new client from the example
-├── template/index.html   # the website design every client site uses
+├── template/index.html   # the website design (3 looks: bold, elegant, modern)
 ├── clients/              # one folder per client, each with site.config.json (+ assets/)
 ├── dist/                 # built websites, ready to upload
 ├── studio-site/          # ELIO's own sales page
@@ -30,18 +30,32 @@ Open `dist/joes-pizza/index.html` in a browser to preview it. Put photos in `cli
 Rebuild every client at once with `node build.js --all`.
 
 ### Config options (`site.config.json`)
+`clients/lost-in-da-souse-kitchen/site.config.json` is a complete example.
+
 | Field | What it does |
 |---|---|
 | `business` | name, tagline, phone, email, address, `hours` list |
-| `theme` | `primary` and `accent` colors, optional `font` |
-| `hero` | headline, subheadline, button text (`ctaText`), optional `ctaLink` and `image` |
-| `services` | list of `{ title, description, price? }` |
-| `servicesNav` | menu link text for that section, e.g. `"Menu"` (default `"Services"`) |
-| `about` | paragraph about the business |
-| `testimonials` | list of `{ quote, name }`. Use **real** reviews only. Leave empty to hide the section. |
-| `contactFormAction` | a form endpoint URL (e.g. from Formspree or Netlify Forms). Leave empty to hide the form. |
+| `theme.style` | `"bold"` (restaurants, barbers, gyms), `"elegant"` (salons, spas, boutiques) or `"modern"` (trades, services) |
+| `theme.primary`, `theme.accent` | brand color (dark) and button color (bright) |
+| `announcement` | a line in the top bar, e.g. "Now open in Sunrise" |
+| `hero` | `eyebrow`, `headline`, `subheadline`, `ctaText`/`ctaLink`, `secondaryText`/`secondaryLink`, `image` |
+| `highlights` | 2–3 short selling points shown as chips |
+| `rating` | `{ value, count, source }`. Real numbers only. |
+| `hoursSummary` | short hours line for the info strip |
+| `order` | `[{ label, url }]` online ordering or booking links |
+| `services` | 3, 4 or 6 items of `{ title, description, price?, tag?, image? }` |
+| `servicesNav`, `servicesEyebrow`, `servicesTitle`, `servicesIntro` | section labels (use `"Menu"` for food) |
+| `band` | `{ headline, text }`: the big call-to-action strip |
+| `gallery` | 3 or 5 photo URLs or `assets/...` paths |
+| `about`, `aboutTitle`, `aboutImage` | the story section |
+| `testimonials` | `{ quote, name }`. Real reviews only, with permission. |
+| `social` | `{ instagram, facebook, tiktok }` links |
+| `contactTitle`, `contactFormAction` | contact section title and optional form endpoint |
 | `seo` | page `title` and `description` for Google |
-| `hideCredit` | `true` removes "Website by ELIO Website Studio" from the footer |
+| `hideCredit` | `true` removes "Website by ELIO Website Studio" |
+
+**Photos make the biggest difference.** Put the owner's photos in `clients/<name>/assets/` and use
+`"assets/photo.jpg"` for `hero.image`, `aboutImage`, `gallery` or a service's `image`.
 
 ## Putting a site online
 Each finished site is one folder in `dist/`. Free or cheap options:

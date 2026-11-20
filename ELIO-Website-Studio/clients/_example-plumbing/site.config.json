@@ -6,13 +6,23 @@
     "email": "hello@example.com",
     "address": "123 Example Ave, Miami, FL",
     "hours": [
-      { "days": "Mon – Fri", "time": "7:00 AM – 6:00 PM" },
-      { "days": "Saturday", "time": "8:00 AM – 2:00 PM" },
-      { "days": "Emergencies", "time": "24/7" }
+      {
+        "days": "Mon – Fri",
+        "time": "7:00 AM – 6:00 PM"
+      },
+      {
+        "days": "Saturday",
+        "time": "8:00 AM – 2:00 PM"
+      },
+      {
+        "days": "Emergencies",
+        "time": "24/7"
+      }
     ]
   },
   "theme": {
-    "primary": "#0b5394",
+    "style": "modern",
+    "primary": "#0b3d6e",
     "accent": "#ffc857"
   },
   "hero": {
@@ -22,10 +32,22 @@
   },
   "servicesTitle": "Our services",
   "services": [
-    { "title": "Leak repair", "description": "We find and fix hidden leaks before they become expensive damage." },
-    { "title": "Drain cleaning", "description": "Kitchen, bathroom and main-line clogs cleared fast." },
-    { "title": "Water heaters", "description": "Repair and same-day replacement for tank and tankless units." },
-    { "title": "Emergency service", "description": "Burst pipe at 2 AM? We answer the phone 24/7." }
+    {
+      "title": "Leak repair",
+      "description": "We find and fix hidden leaks before they become expensive damage."
+    },
+    {
+      "title": "Drain cleaning",
+      "description": "Kitchen, bathroom and main-line clogs cleared fast."
+    },
+    {
+      "title": "Water heaters",
+      "description": "Repair and same-day replacement for tank and tankless units."
+    },
+    {
+      "title": "Emergency service",
+      "description": "Burst pipe at 2 AM? We answer the phone 24/7."
+    }
   ],
   "about": "Sunshine Plumbing is a family-owned business. Replace this paragraph with the client's real story: how long they've been in business, the area they serve and what makes them different.",
   "testimonials": [],
@@ -33,5 +55,15 @@
   "seo": {
     "title": "Sunshine Plumbing Co. | Miami Plumber",
     "description": "Licensed Miami plumbers for leaks, clogs, water heaters and 24/7 emergencies."
+  },
+  "highlights": [
+    "Licensed & insured",
+    "24/7 emergencies",
+    "Upfront pricing"
+  ],
+  "hoursSummary": "Mon–Sat · 24/7 emergencies",
+  "band": {
+    "headline": "Water where it shouldn't be?",
+    "text": "Call now. A licensed plumber can usually be there today."
   }
 }

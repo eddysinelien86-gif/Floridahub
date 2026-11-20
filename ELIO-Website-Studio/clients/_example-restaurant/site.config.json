@@ -6,13 +6,29 @@
     "email": "hola@example.com",
     "address": "456 Example Blvd, Tampa, FL",
     "hours": [
-      { "days": "Tue – Thu", "time": "11:00 AM – 9:00 PM" },
-      { "days": "Fri – Sat", "time": "11:00 AM – 11:00 PM" },
-      { "days": "Sun", "time": "12:00 PM – 8:00 PM" },
-      { "days": "Mon", "time": "Closed" }
+      {
+        "days": "Tue – Thu",
+        "time": "11:00 AM – 9:00 PM"
+      },
+      {
+        "days": "Fri – Sat",
+        "time": "11:00 AM – 11:00 PM"
+      },
+      {
+        "days": "Sun",
+        "time": "12:00 PM – 8:00 PM"
+      },
+      {
+        "days": "Mon",
+        "time": "Closed"
+      }
     ]
   },
-  "theme": { "primary": "#b8432f", "accent": "#ffd166", "font": "Georgia, 'Times New Roman', serif" },
+  "theme": {
+    "style": "bold",
+    "primary": "#8f2d1c",
+    "accent": "#ffd166"
+  },
   "hero": {
     "headline": "Fresh tacos, cold drinks, good people.",
     "subheadline": "Made-to-order tacos with local fish and handmade tortillas. Dine in, take out or order ahead.",
@@ -20,12 +36,41 @@
   },
   "servicesTitle": "Menu favorites",
   "services": [
-    { "title": "Grouper tacos", "description": "Blackened grouper, cabbage slaw, lime crema.", "price": "$13" },
-    { "title": "Carnitas", "description": "Slow-cooked pork, onion, cilantro, salsa verde.", "price": "$11" },
-    { "title": "Veggie bowl", "description": "Rice, black beans, grilled peppers, avocado.", "price": "$10" },
-    { "title": "Catering", "description": "Taco bar for parties and offices. Call for a quote." }
+    {
+      "title": "Grouper tacos",
+      "description": "Blackened grouper, cabbage slaw, lime crema.",
+      "price": "$13"
+    },
+    {
+      "title": "Carnitas",
+      "description": "Slow-cooked pork, onion, cilantro, salsa verde.",
+      "price": "$11"
+    },
+    {
+      "title": "Veggie bowl",
+      "description": "Rice, black beans, grilled peppers, avocado.",
+      "price": "$10"
+    },
+    {
+      "title": "Catering",
+      "description": "Taco bar for parties and offices. Call for a quote."
+    }
   ],
   "about": "Replace with the restaurant's story: who started it, where the recipes come from and what regulars love.",
   "testimonials": [],
-  "seo": { "title": "Coral Taco Kitchen | Tacos in Tampa", "description": "Fresh made-to-order tacos in Tampa. Dine in, take out and catering." }
+  "seo": {
+    "title": "Coral Taco Kitchen | Tacos in Tampa",
+    "description": "Fresh made-to-order tacos in Tampa. Dine in, take out and catering."
+  },
+  "servicesNav": "Menu",
+  "servicesEyebrow": "The menu",
+  "highlights": [
+    "Dine in",
+    "Take out",
+    "Catering"
+  ],
+  "band": {
+    "headline": "Feeding a crowd?",
+    "text": "Our taco bar catering works for parties, offices and game days."
+  }
 }

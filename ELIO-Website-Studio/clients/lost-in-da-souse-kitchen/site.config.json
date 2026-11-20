@@ -11,12 +11,14 @@
     ]
   },
   "theme": {
-    "primary": "#7a1c1c",
-    "accent": "#ffb400"
+    "style": "bold",
+    "primary": "#7a1414",
+    "accent": "#ffc21a"
   },
   "hero": {
+    "eyebrow": "Sunrise, FL · From Atlanta to Broward",
     "headline": "Get lost in da souse.",
-    "subheadline": "Atlanta's late-night favorite is now in Sunrise. Souse, loaded smoke boxes and Southern comfort food until 2 AM on Oakland Park Blvd.",
+    "subheadline": "Florida-style souse, loaded smoke boxes and late-night Southern comfort food on W Oakland Park Blvd.",
     "ctaText": "Get directions",
     "ctaLink": "https://www.google.com/maps/search/?api=1&query=8438+W+Oakland+Park+Blvd%2C+Sunrise%2C+FL+33351"
   },
@@ -24,11 +26,13 @@
   "services": [
     {
       "title": "Smoke Box",
-      "description": "Sliders, wings and fries loaded with cheese and bacon."
+      "description": "Sliders, wings and fries loaded with cheese and bacon.",
+      "tag": "Most popular"
     },
     {
       "title": "Dog Box",
-      "description": "One of the most-ordered boxes on the menu."
+      "description": "One of the most-ordered boxes on the menu.",
+      "tag": "Most popular"
     },
     {
       "title": "Souse",
@@ -45,5 +49,23 @@
     "title": "Lost in da Souse Kitchen | Late-Night Food in Sunrise, FL",
     "description": "Souse, smoke boxes and late-night Southern comfort food at 8438 W Oakland Park Blvd, Sunrise, FL. Open until 2 AM."
   },
-  "servicesNav": "Menu"
+  "servicesNav": "Menu",
+  "announcement": "Now open in Sunrise, FL · Open late until 2 AM",
+  "highlights": [
+    "Open until 2 AM",
+    "Pickup & delivery"
+  ],
+  "rating": {
+    "value": 4.5,
+    "count": 8,
+    "source": "Google"
+  },
+  "hoursSummary": "Open late, until 2 AM",
+  "servicesEyebrow": "The menu",
+  "servicesIntro": "The boxes that made us famous online, plus souse done the Florida way.",
+  "band": {
+    "headline": "Late-night cravings? We got you.",
+    "text": "Swing by 8438 W Oakland Park Blvd. We're open until 2 AM."
+  },
+  "contactTitle": "Pull up"
 }
