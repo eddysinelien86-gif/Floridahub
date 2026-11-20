@@ -1,0 +1,49 @@
+{
+  "business": {
+    "name": "Lost in da Souse Kitchen",
+    "tagline": "Souse, smoke boxes and late-night comfort food in Atlanta",
+    "phone": "(404) 465-0421",
+    "address": "5307 Old National Hwy, Atlanta, GA 30349",
+    "hours": [
+      {
+        "days": "Every day",
+        "time": "Open late – call to confirm hours"
+      }
+    ]
+  },
+  "theme": {
+    "primary": "#7a1c1c",
+    "accent": "#ffb400"
+  },
+  "hero": {
+    "headline": "Get lost in da souse.",
+    "subheadline": "Florida-style souse, loaded smoke boxes and late-night Southern-Caribbean comfort food on Old National Hwy.",
+    "ctaText": "Call to order"
+  },
+  "servicesTitle": "Fan favorites",
+  "services": [
+    {
+      "title": "Smoke Box",
+      "description": "Sliders, wings and fries loaded with cheese and bacon."
+    },
+    {
+      "title": "Dog Box",
+      "description": "One of the most-ordered boxes on the menu."
+    },
+    {
+      "title": "Souse",
+      "description": "Traditional pork or chicken souse, the dish that started it all."
+    },
+    {
+      "title": "Boudin balls",
+      "description": "Crispy, seasoned and made for sharing."
+    }
+  ],
+  "about": "Lost in da Souse Kitchen is an Atlanta favorite with a huge Instagram following, where customers take a bite on camera and give their honest review. Come hungry, order a box and see what all the hype is about. (Demo text: confirm with the owner before launch.)",
+  "testimonials": [],
+  "seo": {
+    "title": "Lost in da Souse Kitchen | Souse & Smoke Boxes in Atlanta",
+    "description": "Florida-style souse, smoke boxes, dog boxes and late-night comfort food at 5307 Old National Hwy, Atlanta."
+  },
+  "servicesNav": "Menu"
+}

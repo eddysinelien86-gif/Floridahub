@@ -36,6 +36,7 @@ Rebuild every client at once with `node build.js --all`.
 | `theme` | `primary` and `accent` colors, optional `font` |
 | `hero` | headline, subheadline, button text (`ctaText`), optional `ctaLink` and `image` |
 | `services` | list of `{ title, description, price? }` |
+| `servicesNav` | menu link text for that section, e.g. `"Menu"` (default `"Services"`) |
 | `about` | paragraph about the business |
 | `testimonials` | list of `{ quote, name }`. Use **real** reviews only. Leave empty to hide the section. |
 | `contactFormAction` | a form endpoint URL (e.g. from Formspree or Netlify Forms). Leave empty to hide the form. |

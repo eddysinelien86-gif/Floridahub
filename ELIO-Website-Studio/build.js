@@ -31,7 +31,7 @@ function render(cfg) {
   const hours = b.hours || [];
 
   const nav = [
-    services.length && `<a href="#services">Services</a>`,
+    services.length && `<a href="#services">${esc(cfg.servicesNav || "Services")}</a>`,
     cfg.about && `<a href="#about">About</a>`,
     testimonials.length && `<a href="#reviews">Reviews</a>`,
     `<a href="#contact">Contact</a>`,
