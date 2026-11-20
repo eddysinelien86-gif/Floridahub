@@ -11,8 +11,11 @@ Typical design file:
 """
 from __future__ import annotations
 
+import json
 import math
 import os
+import time
+from dataclasses import asdict
 from dataclasses import dataclass
 
 import numpy as np
@@ -249,6 +252,14 @@ def export(parts, name: str, out_dir: str = "out", printer: str = DEFAULT_PRINTE
     text = "\n\n".join(str(r) for r in reports)
     with open(os.path.join(out_dir, f"{name}_report.txt"), "w") as f:
         f.write(text + "\n")
+    with open(os.path.join(out_dir, f"{name}_report.json"), "w") as f:
+        json.dump({"name": name, "printer": printer, "built_at": time.time(),
+                   "bed": PRINTERS[printer],
+                   "parts": [dict(asdict(r), size=[round(float(v), 2) for v in r.size],
+                                  volume_cm3=round(float(r.volume_cm3), 2),
+                                  grams_pla=round(float(r.grams_pla), 1),
+                                  watertight=bool(r.watertight), stl=f"{r.name}.stl")
+                             for r in reports]}, f, indent=2)
     print(text)
     print(f"\nwrote {out_dir}/{name}.3mf (open this in Bambu Studio), STLs, and {name}.png")
     return reports

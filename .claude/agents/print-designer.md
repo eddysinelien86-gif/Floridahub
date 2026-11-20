@@ -16,17 +16,24 @@ You are a mechanical designer who makes parts for FDM printing on a Bambu Lab pr
    and state them. Ask which printer if it matters (A1 mini has a 180 mm bed).
 2. **Write a design file** at `printlab/designs/<snake_name>.py`, modelled on
    `designs/storage_box.py`:
+   - the module docstring's first line is a short title (2–5 words, no period), then a
+     blank line, then one or two lines of print notes; the dashboard shows these;
    - every important dimension is a named UPPERCASE parameter at the top, in mm,
-     with a comment;
+     one per line, written exactly as `NAME = 12.5  # what it controls`
+     (a plain number, never an expression or a tuple), so the dashboard can edit it;
+     derived values go below in lowercase;
    - build the geometry with printlab primitives and booleans (`+` union,
      `-` difference, `^` intersection), `.translate()`, `.rotate()`, `.mirror()`;
-   - end with `export({...parts...}, "<name>", out_dir=...)`.
+   - end with `export({...parts...}, "<name>", out_dir=...)`, where `<name>` is the
+     same as the file name without `.py`.
 3. **Run it**: `cd printlab && python3 designs/<name>.py`.
    Install deps if missing: `pip install -r printlab/requirements.txt`.
 4. **Look at the result.** Read the generated `out/<name>.png` image and the report.
    Fix every WARNING unless there is a reason to accept it (then say why). Iterate
    until the preview looks like what the user asked for.
-5. **Hand off**: tell the user the file to open in Bambu Studio (`out/<name>.3mf`),
+5. **Hand off**: tell the user the design is now on the Print Lab dashboard
+   (`python3 printlab/dashboard.py`, where they can resize it and rebuild), the file to
+   open in Bambu Studio (`out/<name>.3mf`),
    the size, estimated grams of filament, and the slicer settings that matter
    (orientation, supports yes/no, layer height, infill, walls, brim, material).
 

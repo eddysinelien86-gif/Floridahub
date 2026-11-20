@@ -12,6 +12,26 @@ In Claude Code, in this repo, just ask, e.g.:
 The agent writes `printlab/designs/<name>.py`, runs it, checks the preview and the
 printability report, and tells you which file to open and the slicer settings to use.
 
+## Dashboard (laptop + TV)
+
+```bash
+pip install -r printlab/requirements.txt
+python3 printlab/dashboard.py
+```
+
+This opens **http://localhost:8765** in your browser. Drag the window to the TV and press **F11**
+for full screen. You get:
+
+- every design, with a 3D view you can spin, shown as it will sit on the print bed;
+- size boxes for each parameter. **Save & rebuild** writes the new numbers into the design file and regenerates it;
+- the printer picker (P1S, X1C, A1, A1 mini, H2D…), which re-checks the fit against that bed;
+- printability checks, filament estimate, downloads, and **Open in Bambu Studio**;
+- auto-refresh: when the agent adds or changes a design, it appears within 5 seconds.
+
+`--lan` lets a phone or a smart-TV browser on your Wi-Fi view it. Building and opening
+files only works from the laptop itself. The 3D view loads three.js from the jsDelivr
+CDN; offline it shows the preview image instead.
+
 ## Run a design yourself
 
 ```bash
