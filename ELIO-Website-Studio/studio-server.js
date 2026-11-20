@@ -20,6 +20,7 @@ const INCOMING = path.join(ROOT, "clients", "_incoming");
 const AGENT_TIMEOUT_MS = 15 * 60 * 1000;
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const NETLIFY_API = process.env.NETLIFY_API || "https://api.netlify.com/api/v1";
+const TWILIO_API = process.env.TWILIO_API || "https://api.twilio.com/2010-04-01";
 
 const CLAUDE_BIN =
   process.env.CLAUDE_BIN ||
@@ -352,10 +353,53 @@ async function publishItem(item) {
     await new Promise((r) => setTimeout(r, 1000));
     d = await netlify("GET", `/deploys/${deploy.id}`);
   }
-  const site = await netlify("GET", `/sites/${siteId}`);
+  let site = await netlify("GET", `/sites/${siteId}`);
+  // With your own domain (bought through Netlify, so Netlify runs its DNS), each demo gets
+  // https://<business>.<your-domain>. Netlify creates the address and its security certificate.
+  const domain = loadSettings().demoDomain;
+  item.domainNote = "";
+  if (domain) {
+    const host = `${slugify(item.name).slice(0, 50)}.${domain}`;
+    if (site.custom_domain !== host) {
+      try { site = await netlify("PATCH", `/sites/${siteId}`, { custom_domain: host }); }
+      catch (e) { item.domainNote = `Couldn't set up ${host}: ${e.message}. Using the Netlify address for now.`; }
+    }
+    if (site.custom_domain === host) {
+      item.publicUrl = `https://${host}`;
+      item.netlifyUrl = site.ssl_url || site.url;
+      item.publishedAt = new Date().toISOString();
+      return item;
+    }
+  }
   item.publicUrl = site.ssl_url || site.url || d.ssl_url || d.url;
   item.publishedAt = new Date().toISOString();
   return item;
+}
+
+// ---------- texting (Twilio) ----------
+const normalizePhone = (p) => {
+  const d = String(p || "").replace(/[^\d+]/g, "");
+  if (/^\+\d{10,15}$/.test(d)) return d;
+  const digits = d.replace(/\D/g, "");
+  if (digits.length === 10) return "+1" + digits;
+  if (digits.length === 11 && digits.startsWith("1")) return "+" + digits;
+  return "";
+};
+
+async function sendText(to, body) {
+  const t = loadSettings().twilio || {};
+  if (!t.sid || !t.token || !t.from) throw new Error("Set up texting first (Texting settings).");
+  const num = normalizePhone(to);
+  if (!num) throw new Error("That phone number doesn't look right. Use 10 digits, like (954) 555-1234.");
+  const r = await fetch(`${TWILIO_API}/Accounts/${encodeURIComponent(t.sid)}/Messages.json`, {
+    method: "POST",
+    headers: { Authorization: "Basic " + Buffer.from(`${t.sid}:${t.token}`).toString("base64"), "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ To: num, From: t.from, Body: body }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new Error("Twilio didn't accept your Account SID or Auth Token. Check Texting settings.");
+  if (!r.ok) throw new Error(`Text not sent: ${data.message || "Twilio error " + r.status}`);
+  return { sid: data.sid, status: data.status, to: num };
 }
 
 async function unpublishItem(item) {
@@ -372,7 +416,52 @@ const server = http.createServer(async (req, res) => {
   const p = decodeURIComponent(url.pathname);
   try {
     if (p === "/" || p === "/index.html") return serveFile(res, path.join(ROOT, "dashboard", "index.html"));
-    if (p === "/api/state" && req.method === "GET") return send(res, 200, { ...state, agent: true, running, netlify: !!loadSettings().netlifyToken });
+    if (p === "/api/state" && req.method === "GET") {
+      const st = loadSettings();
+      return send(res, 200, { ...state, agent: true, running, netlify: !!st.netlifyToken, demoDomain: st.demoDomain || "",
+        texting: !!(st.twilio && st.twilio.sid && st.twilio.token && st.twilio.from), textFrom: (st.twilio && st.twilio.from) || "" });
+    }
+    if (p === "/api/settings/domain" && req.method === "POST") {
+      const body = await readBody(req);
+      const domain = String(body.domain || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+      if (domain && !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(domain)) return send(res, 400, { error: "Type just the domain, like eliostudio.com" });
+      const st = loadSettings(); st.demoDomain = domain; saveSettings(st);
+      return send(res, 200, { ok: true, demoDomain: domain });
+    }
+    if (p === "/api/settings/twilio" && req.method === "POST") {
+      const body = await readBody(req);
+      const st = loadSettings();
+      if (body.clear) { delete st.twilio; saveSettings(st); return send(res, 200, { ok: true, texting: false }); }
+      const from = normalizePhone(body.from);
+      const sid = String(body.sid || "").trim(), token = String(body.token || "").trim();
+      if (!/^AC[0-9a-f]{32}$/i.test(sid)) return send(res, 400, { error: "The Account SID starts with AC followed by 32 letters and numbers." });
+      if (!token) return send(res, 400, { error: "Paste your Auth Token." });
+      if (!from) return send(res, 400, { error: "Type your Twilio phone number, like (954) 555-1234." });
+      // Check the keys work before saving them.
+      const r = await fetch(`${TWILIO_API}/Accounts/${encodeURIComponent(sid)}.json`, { headers: { Authorization: "Basic " + Buffer.from(`${sid}:${token}`).toString("base64") } }).catch(() => null);
+      if (!r) return send(res, 400, { error: "Couldn't reach Twilio. Check your internet connection." });
+      if (r.status === 401 || r.status === 404) return send(res, 400, { error: "Twilio didn't accept that Account SID and Auth Token." });
+      st.twilio = { sid, token, from }; saveSettings(st);
+      return send(res, 200, { ok: true, texting: true, textFrom: from });
+    }
+    const tx = /^\/api\/items\/(\d+)\/text$/.exec(p);
+    if (tx && req.method === "POST") {
+      const item = state.items.find((i) => String(i.id) === tx[1]);
+      if (!item) return send(res, 404, { error: "That business isn't on the dashboard any more." });
+      const body = await readBody(req);
+      const msg = String(body.message || "").trim();
+      if (!item.publicUrl) return send(res, 400, { error: "Put the demo online first." });
+      if (!msg.includes(item.publicUrl)) return send(res, 400, { error: "The message must include the demo link." });
+      try {
+        const r = await sendText(body.to, /reply stop/i.test(msg) ? msg : msg + "\n\nReply STOP to opt out.");
+        item.messages = [...(item.messages || []), { at: new Date().toISOString(), via: "text", to: r.to, status: r.status, sid: r.sid }];
+        item.sentAt = new Date().toISOString().slice(0, 10); item.sentVia = "text";
+        if (["Lead", "Demo ready"].includes(item.stage)) item.stage = "Demo sent";
+        item.next = "Follow up on demo"; item.due = addDays(2);
+        save();
+        return send(res, 200, { item, to: r.to });
+      } catch (e) { return send(res, 400, { error: e.message }); }
+    }
     if (p === "/api/settings/netlify" && req.method === "POST") {
       const body = await readBody(req);
       const token = String(body.token || "").trim();
@@ -402,7 +491,7 @@ const server = http.createServer(async (req, res) => {
       const prev = new Map(state.items.map((i) => [String(i.id), i]));
       state.items = body.items.map((i) => {
         const o = prev.get(String(i.id)) || {};
-        for (const k of ["netlifySiteId", "publicUrl", "publishedAt", "slug", "demo"]) if (i[k] === undefined && o[k] !== undefined) i[k] = o[k];
+        for (const k of ["netlifySiteId", "publicUrl", "publishedAt", "slug", "demo", "netlifyUrl", "domainNote", "messages"]) if (i[k] === undefined && o[k] !== undefined) i[k] = o[k];
         return i;
       });
       if (body.imported) state.imported = true;

@@ -92,6 +92,16 @@ dashboard walks you through it). **Put demo online** gives the demo a public lin
 Messages opens with the text ready), email it with Gmail, or copy the message. The business moves to
 **Demo sent** with a follow-up in 2 days. **Take offline** removes the public link if the owner says no.
 
+**Settings** (top right) has three parts:
+1. **Netlify**: puts demos online (free).
+2. **Your own domain** (optional): buy one in Netlify (Domains → Add or register domain) and type it in.
+   Demo links become `https://business-name.yourdomain.com`.
+3. **Automatic texting** (optional): connect a Twilio account and number. The Send screen then has
+   **Send text now**. It always asks you to approve before sending, and adds "Reply STOP to opt out".
+   US carriers require A2P 10DLC registration in Twilio before business texts are delivered.
+   Only text people who are OK with hearing from you (for example, ask on a call first). Marketing texts
+   without consent can break US law (TCPA).
+
 Your data is saved in `data/studio.json` (your Netlify token in `data/settings.json`; neither goes to GitHub). The server only accepts connections from this computer.
 
 You can still double-click `dashboard/index.html` directly; everything except the agent works that way,
