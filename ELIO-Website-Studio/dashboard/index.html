@@ -197,6 +197,14 @@
       <button type="button" id="unpublishBtn" hidden>Take offline</button>
     </div>
     <p class="err-msg" id="publishErr" hidden></p>
+    <div class="offline" id="privateBox" hidden>
+      <strong>Customers can't open this link yet.</strong> Netlify set this demo to private.
+      <ol class="steps" style="margin-top:6px">
+        <li><a id="privateFix" href="#" target="_blank" rel="noopener">Open this demo's visibility setting</a>, choose <strong>Public</strong>, and Save.</li>
+        <li id="privateTeamLi"><a id="privateTeamFix" href="#" target="_blank" rel="noopener">Set your team's default to Public for new projects</a> so future demos are public automatically.</li>
+        <li>Come back and click <strong>Update online version</strong> to check again.</li>
+      </ol>
+    </div>
   </div>
   <div class="send-step" id="stepSend">
     <strong>2. Send it to the customer</strong>
@@ -488,6 +496,10 @@ function syncSend() {
   $("textSetupNote").hidden = textingOn;
   $("autoTextNote").textContent = textingOn ? `Sends from ${textFrom} after you approve.` : "";
   if (i.domainNote) { $("publishErr").textContent = i.domainNote; $("publishErr").hidden = false; }
+  $("privateBox").hidden = !(online && i.privateNote);
+  if (i.privateFix) $("privateFix").href = i.privateFix;
+  $("privateTeamLi").hidden = !i.privateTeamFix;
+  if (i.privateTeamFix) $("privateTeamFix").href = i.privateTeamFix;
   const msg = $("s-msg");
   if (!msg.dataset.touched) msg.value = defaultMessage(i);
 }

@@ -368,11 +368,14 @@ async function publishItem(item) {
       item.publicUrl = `https://${host}`;
       item.netlifyUrl = site.ssl_url || site.url;
       item.publishedAt = new Date().toISOString();
+      const probe = { publicUrl: item.netlifyUrl }; await checkPublic(probe, site);
+      Object.assign(item, { privateNote: probe.privateNote, privateFix: probe.privateFix, privateTeamFix: probe.privateTeamFix });
       return item;
     }
   }
   item.publicUrl = site.ssl_url || site.url || d.ssl_url || d.url;
   item.publishedAt = new Date().toISOString();
+  await checkPublic(item, site);
   return item;
 }
 
@@ -400,6 +403,22 @@ async function sendText(to, body) {
   if (r.status === 401) throw new Error("Twilio didn't accept your Account SID or Auth Token. Check Texting settings.");
   if (!r.ok) throw new Error(`Text not sent: ${data.message || "Twilio error " + r.status}`);
   return { sid: data.sid, status: data.status, to: num };
+}
+
+// New Netlify teams make projects private (owner-only). Netlify has no API to change that, so after each
+// publish we open the link the way a customer would and warn if it asks for a login.
+async function checkPublic(item, site) {
+  item.privateNote = ""; item.privateFix = "";
+  try {
+    const r = await fetch(item.publicUrl, { redirect: "manual", signal: AbortSignal.timeout(15000) });
+    const loc = r.headers.get("location") || "";
+    const blocked = r.status === 401 || r.status === 403 || (r.status >= 300 && r.status < 400 && /netlify\.(com|app)\/.*(login|auth|signup)|app\.netlify\.com/i.test(loc));
+    if (blocked) {
+      item.privateNote = "Customers can't open this demo yet: Netlify has it set to private. Make it public in Netlify, or set your team so new projects are public.";
+      item.privateFix = site && site.name ? `https://app.netlify.com/projects/${site.name}/configuration/general/#project-visibility` : "https://app.netlify.com/";
+      item.privateTeamFix = site && site.account_slug ? `https://app.netlify.com/teams/${site.account_slug}/settings/general#default-project-visibility` : "";
+    }
+  } catch { /* a brand-new custom address can take a few minutes; that's not a privacy problem */ }
 }
 
 async function unpublishItem(item) {
@@ -491,7 +510,7 @@ const server = http.createServer(async (req, res) => {
       const prev = new Map(state.items.map((i) => [String(i.id), i]));
       state.items = body.items.map((i) => {
         const o = prev.get(String(i.id)) || {};
-        for (const k of ["netlifySiteId", "publicUrl", "publishedAt", "slug", "demo", "netlifyUrl", "domainNote", "messages"]) if (i[k] === undefined && o[k] !== undefined) i[k] = o[k];
+        for (const k of ["netlifySiteId", "publicUrl", "publishedAt", "slug", "demo", "netlifyUrl", "domainNote", "messages", "privateNote", "privateFix", "privateTeamFix"]) if (i[k] === undefined && o[k] !== undefined) i[k] = o[k];
         return i;
       });
       if (body.imported) state.imported = true;
